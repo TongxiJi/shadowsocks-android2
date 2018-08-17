@@ -1,7 +1,7 @@
 package com.vm.shadowsocks.core;
 
 import android.util.Log;
-import android.util.SparseArray;
+import android.util.LruCache;
 
 import com.vm.shadowsocks.dns.DnsPacket;
 import com.vm.shadowsocks.dns.Question;
@@ -15,12 +15,12 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 
-public class DnsProxy implements Runnable {
+public class DnsProxyServer implements Runnable {
 
-    private static final String TAG = DnsProxy.class.getSimpleName();
+    private static final String TAG = DnsProxyServer.class.getSimpleName();
 
     private class QueryState {
         public short ClientQueryID;
@@ -32,16 +32,15 @@ public class DnsProxy implements Runnable {
     }
 
     public boolean Stopped;
-    private static final ConcurrentHashMap<Integer, String> IPDomainMaps = new ConcurrentHashMap<Integer, String>();
-    private static final ConcurrentHashMap<String, Integer> DomainIPMaps = new ConcurrentHashMap<String, Integer>();
+    private static final LruCache<Integer, String> IPDomainMaps = new LruCache<Integer, String>(150);
+    private static final LruCache<String, Integer> DomainIPMaps = new LruCache<String, Integer>(150);
     private final long QUERY_TIMEOUT_NS = 10 * 1000000000L;
     private DatagramChannel m_Client;
     private Thread m_ReceivedThread;
     private short m_QueryID;
-    private SparseArray<QueryState> m_QueryArray;
+    private LruCache<Short, QueryState> m_QueryArray = new LruCache<>(100);
 
-    public DnsProxy() throws IOException {
-        m_QueryArray = new SparseArray<QueryState>();
+    public DnsProxyServer() throws IOException {
         m_Client = DatagramChannel.open();
         m_Client.socket().bind(new InetSocketAddress(0));
     }
@@ -130,8 +129,7 @@ public class DnsProxy implements Runnable {
             do {
                 fakeIP = ProxyConfig.FAKE_NETWORK_IP | (hashIP & 0x0000FFFF);
                 hashIP++;
-            } while (IPDomainMaps.containsKey(fakeIP));
-
+            } while (IPDomainMaps.get(fakeIP) != null);
             DomainIPMaps.put(domainString, fakeIP);
             IPDomainMaps.put(fakeIP, domainString);
         }
@@ -155,12 +153,9 @@ public class DnsProxy implements Runnable {
     }
 
     private void OnDnsResponseReceived(IPHeader ipHeader, UDPHeader udpHeader, DnsPacket dnsPacket) {
-        QueryState state = null;
-        synchronized (m_QueryArray) {
-            state = m_QueryArray.get(dnsPacket.Header.ID);
-            if (state != null) {
-                m_QueryArray.remove(dnsPacket.Header.ID);
-            }
+        QueryState state = m_QueryArray.get(dnsPacket.Header.ID);
+        if (state != null) {
+            m_QueryArray.remove(dnsPacket.Header.ID);
         }
 
         if (state != null) {
@@ -216,10 +211,11 @@ public class DnsProxy implements Runnable {
 
     private void clearExpiredQueries() {
         long now = System.nanoTime();
-        for (int i = m_QueryArray.size() - 1; i >= 0; i--) {
-            QueryState state = m_QueryArray.valueAt(i);
-            if ((now - state.QueryNanoTime) > QUERY_TIMEOUT_NS) {
-                m_QueryArray.removeAt(i);
+        Map<Short, QueryState> snapshotMap = m_QueryArray.snapshot();
+        for (Map.Entry<Short, QueryState> entry : snapshotMap.entrySet()) {
+            QueryState state = entry.getValue();
+            if (now - state.QueryNanoTime > QUERY_TIMEOUT_NS) {
+                m_QueryArray.remove(entry.getKey());
             }
         }
     }
@@ -239,10 +235,8 @@ public class DnsProxy implements Runnable {
             m_QueryID++;// 增加ID
             dnsPacket.Header.setID(m_QueryID);
 
-            synchronized (m_QueryArray) {
-                clearExpiredQueries();//清空过期的查询，减少内存开销。
-                m_QueryArray.put(m_QueryID, state);// 关联数据
-            }
+            clearExpiredQueries();//清空过期的查询，减少内存开销。
+            m_QueryArray.put(m_QueryID, state);// 关联数据
 
             InetSocketAddress remoteAddress = new InetSocketAddress(CommonMethods.ipIntToInet4Address(state.RemoteIP), state.RemotePort);
             ByteBuffer packet = ByteBuffer.allocate(dnsPacket.Size);

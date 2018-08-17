@@ -31,7 +31,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Map;
@@ -62,7 +61,7 @@ public class LocalVpnService extends VpnService implements Runnable {
     private Thread m_VPNThread;
     private ParcelFileDescriptor m_VPNInterface;
     private TcpProxyServer m_TcpProxyServer;
-    private DnsProxy m_DnsProxy;
+    private DnsProxyServer m_DnsProxyServer;
     private FileOutputStream m_VPNOutputStream;
 
     private byte[] m_Packet;
@@ -231,8 +230,8 @@ public class LocalVpnService extends VpnService implements Runnable {
             m_TcpProxyServer.start();
             Log.d(TAG, "LocalTcpServer started.");
 
-            m_DnsProxy = new DnsProxy();
-            m_DnsProxy.start();
+            m_DnsProxyServer = new DnsProxyServer();
+            m_DnsProxyServer.start();
             Log.d(TAG, "LocalDnsProxy started.");
 
             while (true) {
@@ -285,7 +284,7 @@ public class LocalVpnService extends VpnService implements Runnable {
         int size = 0;
         while (size != -1 && IsRunning) {
             while ((size = in.read(m_Packet)) > 0 && IsRunning) {
-                if (m_DnsProxy.Stopped || m_TcpProxyServer.Stopped) {
+                if (m_DnsProxyServer.Stopped || m_TcpProxyServer.Stopped) {
                     in.close();
                     throw new Exception("LocalServer stopped.");
                 }
@@ -367,7 +366,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                     m_DNSBuffer.limit(ipHeader.getDataLength() - 8);
                     DnsPacket dnsPacket = DnsPacket.FromBytes(m_DNSBuffer);
                     if (dnsPacket != null && dnsPacket.Header.QuestionCount > 0) {
-                        m_DnsProxy.onDnsRequestReceived(ipHeader, udpHeader, dnsPacket);
+                        m_DnsProxyServer.onDnsRequestReceived(ipHeader, udpHeader, dnsPacket);
                     }
                 }
                 break;
@@ -479,9 +478,9 @@ public class LocalVpnService extends VpnService implements Runnable {
         }
 
         // 停止DNS解析器
-        if (m_DnsProxy != null) {
-            m_DnsProxy.stop();
-            m_DnsProxy = null;
+        if (m_DnsProxyServer != null) {
+            m_DnsProxyServer.stop();
+            m_DnsProxyServer = null;
             Log.d(TAG, "LocalDnsProxy stopped.");
         }
 
