@@ -136,9 +136,9 @@ public abstract class Tunnel {
             buffer.clear();
             int bytesRead;
             if (m_InnerChannel instanceof SocketChannel) {
-                bytesRead = ((SocketChannel) m_InnerChannel).write(buffer);
+                bytesRead = ((SocketChannel) m_InnerChannel).read(buffer);
             } else if (m_InnerChannel instanceof DatagramChannel) {
-                bytesRead = ((DatagramChannel) m_InnerChannel).write(buffer);
+                bytesRead = ((DatagramChannel) m_InnerChannel).read(buffer);
             } else {
                 throw new Exception("unsupported channel type:" + m_InnerChannel.getClass().getName());
             }
