@@ -264,7 +264,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                 }
             }
         } catch (InterruptedException e) {
-            Log.d(TAG,e.getMessage());
+            Log.d(TAG, e.getMessage());
         } catch (Exception e) {
             Log.d(TAG, String.format("Fatal error: %s", e.toString()));
         } finally {
@@ -360,7 +360,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                 // 转发DNS数据包：
                 UDPHeader udpHeader = m_UDPHeader;
                 udpHeader.m_Offset = ipHeader.getHeaderLength();
-                Log.d(TAG, String.format("onIPPacketReceived: udp   %d ", udpHeader.getDestinationPort()));
+                Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
                 if (ipHeader.getSourceIP() == LOCAL_IP && udpHeader.getDestinationPort() == 53) {
                     m_DNSBuffer.clear();
                     m_DNSBuffer.limit(ipHeader.getDataLength() - 8);

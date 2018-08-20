@@ -26,9 +26,9 @@ public class DnsProxyServer implements Runnable {
         public short ClientQueryID;
         public long QueryNanoTime;
         public int ClientIP;
-        public short ClientPort;
+        public int ClientPort;
         public int RemoteIP;
-        public short RemotePort;
+        public int RemotePort;
     }
 
     public boolean Stopped;
@@ -195,7 +195,7 @@ public class DnsProxyServer implements Runnable {
                 Log.d(TAG, String.format("interceptDns FakeDns: %s=>%s\n", question.Domain, CommonMethods.ipIntToString(fakeIP)));
 
                 int sourceIP = ipHeader.getSourceIP();
-                short sourcePort = udpHeader.getSourcePort();
+                int sourcePort = udpHeader.getSourcePort();
                 ipHeader.setSourceIP(ipHeader.getDestinationIP());
                 ipHeader.setDestinationIP(sourceIP);
                 ipHeader.setTotalLength(20 + 8 + dnsPacket.Size);

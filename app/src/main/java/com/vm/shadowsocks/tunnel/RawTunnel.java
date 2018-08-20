@@ -3,7 +3,7 @@ package com.vm.shadowsocks.tunnel;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.spi.AbstractSelectableChannel;
 
 public class RawTunnel extends Tunnel {
 
@@ -11,7 +11,7 @@ public class RawTunnel extends Tunnel {
         super(serverAddress, selector);
     }
 
-    public RawTunnel(SocketChannel innerChannel, Selector selector) {
+    public RawTunnel(AbstractSelectableChannel innerChannel, Selector selector) {
         super(innerChannel, selector);
         // TODO Auto-generated constructor stub
     }

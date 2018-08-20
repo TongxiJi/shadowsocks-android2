@@ -1,10 +1,10 @@
 package com.vm.shadowsocks.tcpip;
 
 public class UDPHeader {
-    static final short offset_src_port = 0; // Source port
-    static final short offset_dest_port = 2; // Destination port
-    static final short offset_tlen = 4; // Datagram length
-    static final short offset_crc = 6; // Checksum
+    private static final short offset_src_port = 0; // Source port
+    private static final short offset_dest_port = 2; // Destination port
+    private static final short offset_tlen = 4; // Datagram length
+    private static final short offset_crc = 6; // Checksum
 
     public byte[] m_Data;
     public int m_Offset;
@@ -14,20 +14,20 @@ public class UDPHeader {
         this.m_Offset = offset;
     }
 
-    public short getSourcePort() {
-        return CommonMethods.readShort(m_Data, m_Offset + offset_src_port);
+    public int getSourcePort() {
+        return CommonMethods.readShort(m_Data, m_Offset + offset_src_port) & 0xFFFF;
     }
 
-    public void setSourcePort(short value) {
-        CommonMethods.writeShort(m_Data, m_Offset + offset_src_port, value);
+    public void setSourcePort(int value) {
+        CommonMethods.writeShort(m_Data, m_Offset + offset_src_port, (short) value);
     }
 
-    public short getDestinationPort() {
-        return CommonMethods.readShort(m_Data, m_Offset + offset_dest_port);
+    public int getDestinationPort() {
+        return CommonMethods.readShort(m_Data, m_Offset + offset_dest_port) & 0xFFFF;
     }
 
-    public void setDestinationPort(short value) {
-        CommonMethods.writeShort(m_Data, m_Offset + offset_dest_port, value);
+    public void setDestinationPort(int value) {
+        CommonMethods.writeShort(m_Data, m_Offset + offset_dest_port, (short) value);
     }
 
     public int getTotalLength() {
