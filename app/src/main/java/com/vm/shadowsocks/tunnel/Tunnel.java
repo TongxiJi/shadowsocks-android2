@@ -3,14 +3,15 @@ package com.vm.shadowsocks.tunnel;
 import android.util.Log;
 
 import com.vm.shadowsocks.core.LocalVpnService;
-import com.vm.shadowsocks.core.ProxyConfig;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.spi.AbstractSelectableChannel;
 
 public abstract class Tunnel {
     private static final String TAG = Tunnel.class.getSimpleName();
@@ -29,7 +30,7 @@ public abstract class Tunnel {
 
     protected abstract void onDispose();
 
-    private SocketChannel m_InnerChannel;
+    private AbstractSelectableChannel m_InnerChannel;
     private ByteBuffer m_SendRemainBuffer;
     private Selector m_Selector;
     private Tunnel m_BrotherTunnel;
@@ -37,7 +38,7 @@ public abstract class Tunnel {
     private InetSocketAddress m_ServerEP;
     private InetSocketAddress m_DestAddress;
 
-    public Tunnel(SocketChannel innerChannel, Selector selector) {
+    public Tunnel(AbstractSelectableChannel innerChannel, Selector selector) {
         this.m_InnerChannel = innerChannel;
         this.m_Selector = selector;
         SessionCount++;
@@ -61,10 +62,10 @@ public abstract class Tunnel {
     }
 
     public void connect(InetSocketAddress destAddress) throws Exception {
-        if (LocalVpnService.Instance.protect(m_InnerChannel.socket())) {//保护socket不走vpn
+        if (LocalVpnService.Instance.protect(((SocketChannel) m_InnerChannel).socket())) {//保护socket不走vpn
             m_DestAddress = destAddress;
             m_InnerChannel.register(m_Selector, SelectionKey.OP_CONNECT, this);//注册连接事件
-            m_InnerChannel.connect(m_ServerEP);//连接目标
+            ((SocketChannel) m_InnerChannel).connect(m_ServerEP);//连接目标
         } else {
             throw new Exception("VPN protect socket failed.");
         }
@@ -79,9 +80,16 @@ public abstract class Tunnel {
 
 
     protected boolean write(ByteBuffer buffer, boolean copyRemainData) throws Exception {
-        int bytesSent;
+        int bytesSent = 0;
         while (buffer.hasRemaining()) {
-            bytesSent = m_InnerChannel.write(buffer);
+            if (m_InnerChannel instanceof SocketChannel) {
+                bytesSent = ((SocketChannel) m_InnerChannel).write(buffer);
+            } else if (m_InnerChannel instanceof DatagramChannel) {
+                bytesSent = ((DatagramChannel) m_InnerChannel).write(buffer);
+            } else {
+                throw new Exception("unsupported channel type:" + m_InnerChannel.getClass().getName());
+            }
+
             if (bytesSent == 0) {
                 break;//不能再发送了，终止循环
             }
@@ -111,7 +119,7 @@ public abstract class Tunnel {
 
     public void onConnectible() {
         try {
-            if (m_InnerChannel.finishConnect()) {//连接成功
+            if (((SocketChannel) m_InnerChannel).finishConnect()) {//连接成功
                 onConnected(buffer);//通知子类TCP已连接，子类可以根据协议实现握手等。
             } else {//连接失败
                 Log.d(TAG, String.format("Error: connect to %s failed.", m_ServerEP));
@@ -126,7 +134,14 @@ public abstract class Tunnel {
     public void onReadable(SelectionKey key) {
         try {
             buffer.clear();
-            int bytesRead = m_InnerChannel.read(buffer);
+            int bytesRead;
+            if (m_InnerChannel instanceof SocketChannel) {
+                bytesRead = ((SocketChannel) m_InnerChannel).write(buffer);
+            } else if (m_InnerChannel instanceof DatagramChannel) {
+                bytesRead = ((DatagramChannel) m_InnerChannel).write(buffer);
+            } else {
+                throw new Exception("unsupported channel type:" + m_InnerChannel.getClass().getName());
+            }
             if (bytesRead > 0) {
                 buffer.flip();
                 afterReceived(buffer);//先让子类处理，例如解密数据。
