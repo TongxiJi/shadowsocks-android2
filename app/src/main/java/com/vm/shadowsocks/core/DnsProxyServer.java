@@ -13,6 +13,7 @@ import com.vm.shadowsocks.tcpip.UDPHeader;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Map;
@@ -32,6 +33,7 @@ public class DnsProxyServer implements Runnable {
     }
 
     public boolean Stopped;
+    private final int Port;
     private static final LruCache<Integer, String> IPDomainMaps = new LruCache<Integer, String>(150);
     private static final LruCache<String, Integer> DomainIPMaps = new LruCache<String, Integer>(150);
     private final long QUERY_TIMEOUT_NS = 10 * 1000000000L;
@@ -42,7 +44,10 @@ public class DnsProxyServer implements Runnable {
 
     public DnsProxyServer() throws IOException {
         m_Client = DatagramChannel.open();
+        m_Client.configureBlocking(true);
         m_Client.socket().bind(new InetSocketAddress(0));
+        this.Port = m_Client.socket().getLocalPort();
+        Log.d(TAG, String.format("DnsServer listen on %d success.\n", this.Port & 0xFFFF));
     }
 
     public static String reverseLookup(int ip) {
@@ -70,9 +75,9 @@ public class DnsProxyServer implements Runnable {
             IPHeader ipHeader = new IPHeader(dnsBuffer.array(), 0);
             UDPHeader udpHeader = new UDPHeader(dnsBuffer.array(), 20);
             while (m_Client != null && m_Client.isOpen()) {
-                dnsBuffer.position(28);
-                m_Client.receive(dnsBuffer);
-                dnsBuffer.flip();
+                dnsBuffer.clear();
+                SocketAddress socketAddress = m_Client.receive(dnsBuffer);
+                Log.d(TAG, "received from "+socketAddress.toString() + " remaining:" +dnsBuffer.remaining());
                 try {
                     DnsPacket dnsPacket = DnsPacket.FromBytes(dnsBuffer);
                     if (dnsPacket != null) {
