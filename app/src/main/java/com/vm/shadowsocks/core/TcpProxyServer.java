@@ -2,19 +2,15 @@ package com.vm.shadowsocks.core;
 
 import android.util.Log;
 
-import com.vm.shadowsocks.tcpip.CommonMethods;
-import com.vm.shadowsocks.tunnel.Tunnel;
+import com.vm.shadowsocks.tunnel.TcpBaseTunnel;
 import com.vm.shadowsocks.tunnel.TcpTunnel;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.Iterator;
 
 public class TcpProxyServer implements Runnable {
@@ -75,11 +71,11 @@ public class TcpProxyServer implements Runnable {
                     if (key.isValid()) {
                         try {
                             if (key.isReadable()) {
-                                ((Tunnel) key.attachment()).onReadable(key);
+                                ((TcpBaseTunnel) key.attachment()).onReadable(key);
                             } else if (key.isWritable()) {
-                                ((Tunnel) key.attachment()).onWritable(key);
+                                ((TcpBaseTunnel) key.attachment()).onWritable(key);
                             } else if (key.isConnectable()) {
-                                ((Tunnel) key.attachment()).onConnectible();
+                                ((TcpBaseTunnel) key.attachment()).onConnectible();
                             } else if (key.isAcceptable()) {
                                 onAccepted(key);
                             }
@@ -99,14 +95,14 @@ public class TcpProxyServer implements Runnable {
     }
 
     private void onAccepted(SelectionKey key) {
-        Tunnel localTunnel = null;
+        TcpBaseTunnel localTunnel = null;
         try {
             SocketChannel localChannel = m_ServerSocketChannel.accept();
             localTunnel = TunnelFactory.wrap(localChannel, m_Selector);
             InetSocketAddress destAddress = TunnelFactory.getDestAddress(localChannel);
 //            Log.d(TAG, "onAccepted: destAddress :" + (destAddress.toString()));
             if (destAddress != null) {
-                Tunnel remoteTunnel = TunnelFactory.createTunnelByConfig(destAddress, m_Selector, TcpTunnel.class);
+                TcpBaseTunnel remoteTunnel = TunnelFactory.createTunnelByConfig(destAddress, m_Selector, TcpTunnel.class);
                 remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
                 localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
                 remoteTunnel.connect(destAddress);//开始连接

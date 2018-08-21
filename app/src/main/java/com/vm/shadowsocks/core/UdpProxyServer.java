@@ -2,7 +2,8 @@ package com.vm.shadowsocks.core;
 
 import android.util.Log;
 
-import com.vm.shadowsocks.tunnel.Tunnel;
+import com.vm.shadowsocks.tunnel.TcpTunnel;
+import com.vm.shadowsocks.tunnel.TcpBaseTunnel;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,7 +17,7 @@ public class UdpProxyServer implements Runnable {
     private static final int UDP_RECV_BUFF_SIZE = 64 * 1024;
 
     public boolean Stopped;
-    public short Port;
+    public int Port;
 
     Selector m_Selector;
     DatagramChannel udpServerChannel;
@@ -28,7 +29,7 @@ public class UdpProxyServer implements Runnable {
         udpServerChannel.configureBlocking(false);
         udpServerChannel.socket().bind(new InetSocketAddress(port));
         udpServerChannel.register(m_Selector, SelectionKey.OP_READ);
-        this.Port = (short) udpServerChannel.socket().getLocalPort();
+        this.Port = udpServerChannel.socket().getLocalPort();
         Log.d(TAG, String.format("AsyncUdpServer listen on %d success.\n", this.Port & 0xFFFF));
     }
 
@@ -70,10 +71,10 @@ public class UdpProxyServer implements Runnable {
                     if (key.isValid()) {
                         try {
                             if (key.isReadable()) {
-                                //check custom channel exist
-                                ((Tunnel) key.attachment()).onReadable(key);
+//                                onCheckRemoteTunnel(key);
+                                ((TcpBaseTunnel) key.attachment()).onReadable(key);
                             } else if (key.isWritable()) {
-                                ((Tunnel) key.attachment()).onWritable(key);
+                                ((TcpBaseTunnel) key.attachment()).onWritable(key);
                             }
                         } catch (Exception e) {
                             Log.d(TAG, e.toString());
@@ -90,18 +91,19 @@ public class UdpProxyServer implements Runnable {
         }
     }
 
-//    private void onAccepted(SelectionKey key) {
-//        Tunnel localTunnel = null;
+//    private void onCheckRemoteTunnel(SelectionKey key) {
+//        TcpBaseTunnel localTunnel = null;
 //        try {
-//            SocketChannel localChannel = udpServerChannel.accept();
-//            localTunnel = TunnelFactory.wrap(localChannel, m_Selector);
-//
-//            InetSocketAddress destAddress = getDestAddress(localChannel);
+//            DatagramChannel localChannel = (DatagramChannel) key.channel();
+//            InetSocketAddress destAddress = TunnelFactory.getDestAddress(localChannel);
 //            if (destAddress != null) {
-//                Tunnel remoteTunnel = TunnelFactory.createTunnelByConfig(destAddress, m_Selector, TcpTunnel.class);
-//                remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
-//                localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
-//                remoteTunnel.connect(destAddress);//开始连接
+//                if (!NatMapper.containUdpChannel(localChannel.socket().getPort())) {
+//                    localTunnel = TunnelFactory.wrap(localChannel, m_Selector);
+//                    TcpBaseTunnel remoteTunnel = TunnelFactory.createTunnelByConfig(destAddress, m_Selector, TcpTunnel.class);
+//                    remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
+//                    localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
+//                    remoteTunnel.listen(destAddress);//开始连接
+//                }
 //            } else {
 //                Log.d(TAG, String.format("Error: socket(%s:%d) target host is null.", localChannel.socket().getInetAddress().toString(), localChannel.socket().getPort()));
 //                localTunnel.dispose();
@@ -113,27 +115,6 @@ public class UdpProxyServer implements Runnable {
 //            }
 //        }
 //    }
-
-//    private InetSocketAddress getDestAddress(SocketChannel localChannel) {
-//        short portKey = (short) localChannel.socket().getPort();
-//        NatSession session = NatSessionManager.getSession(portKey);
-//        if (session != null) {
-//            if (ProxyConfig.Instance.needProxy(session.RemoteHost, session.RemoteIP)) {
-//                Log.d(TAG, String.format("%d/%d:[PROXY] %s=>%s:%d\n", NatSessionManager.getSessionCount(), Tunnel.SessionCount, session.RemoteHost, CommonMethods.ipIntToString(session.RemoteIP), session.RemotePort & 0xFFFF));
-//                InetSocketAddress desAddr;
-//                if (session.RemoteHost != null) {
-//                    desAddr = new InetSocketAddress(session.RemoteHost, session.RemotePort);
-//                } else {
-//                    desAddr = new InetSocketAddress(CommonMethods.ipIntToInet4Address(session.RemoteIP), session.RemotePort);
-//                }
-//                return desAddr;
-//            } else {
-//                return new InetSocketAddress(localChannel.socket().getInetAddress(), session.RemotePort & 0xFFFF);
-//            }
-//        }
-//        return null;
-//    }
-
 
 
 }

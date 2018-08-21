@@ -1,14 +1,18 @@
 package com.vm.shadowsocks.core;
 
+import android.util.Log;
 import android.util.LruCache;
 
+import java.io.IOException;
 import java.util.Map;
 
 public class NatSessionManager {
-    private static final int MAX_SESSION_COUNT = 60;
+    private static final String TAG = NatSessionManager.class.getSimpleName();
+
+    private static final float MAX_SESSION_PERCENT = 0.6f;
     private static final long SESSION_TIMEOUT_NS = 60 * 1000000000L;
 
-    private static final LruCache<Integer, NatSession> sessions = new LruCache<>(100);
+    private static final LruCache<Integer, NatSession> sessions = new LruCache<>(400);
 
     public static NatSession getSession(int portKey) {
         return sessions.get(portKey);
@@ -25,12 +29,17 @@ public class NatSessionManager {
             NatSession session = entry.getValue();
             if (now - session.LastNanoTime > SESSION_TIMEOUT_NS) {
                 sessions.remove(entry.getKey());
+                try {
+                    NatMapper.closeChannelGracefully(entry.getKey());
+                } catch (IOException e) {
+                    Log.e(TAG, "clearExpiredSessions: " + e.getMessage());
+                }
             }
         }
     }
 
     public static NatSession createSession(int portKey, int remoteIP, int remotePort) {
-        if (sessions.size() > MAX_SESSION_COUNT) {
+        if (sessions.size() > MAX_SESSION_PERCENT * sessions.size()) {
             clearExpiredSessions();//清理过期的会话。
         }
 

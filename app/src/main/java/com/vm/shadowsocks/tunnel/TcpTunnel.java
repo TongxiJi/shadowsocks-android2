@@ -10,7 +10,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 
-public class TcpTunnel extends Tunnel {
+public class TcpTunnel extends TcpBaseTunnel {
 
     private static final String TAG = TcpTunnel.class.getSimpleName();
     private ICrypt m_Encryptor;
@@ -75,10 +75,9 @@ public class TcpTunnel extends Tunnel {
     protected void afterReceived(ByteBuffer buffer) throws Exception {
         byte[] bytes = new byte[buffer.limit()];
         buffer.get(bytes);
-        byte[] newbytes = m_Encryptor.decrypt(bytes);
-        String s = new String(newbytes);
+        bytes = m_Encryptor.decrypt(bytes);
         buffer.clear();
-        buffer.put(newbytes);
+        buffer.put(bytes);
         buffer.flip();
     }
 

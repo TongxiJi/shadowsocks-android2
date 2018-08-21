@@ -4,10 +4,10 @@ import android.util.Log;
 
 import com.vm.shadowsocks.tcpip.CommonMethods;
 import com.vm.shadowsocks.tunnel.Config;
-import com.vm.shadowsocks.tunnel.RawTunnel;
+import com.vm.shadowsocks.tunnel.TcpRawTunnel;
 import com.vm.shadowsocks.tunnel.TcpTunnel;
-import com.vm.shadowsocks.tunnel.Tunnel;
-import com.vm.shadowsocks.tunnel.UdpTunnel;
+import com.vm.shadowsocks.tunnel.TcpBaseTunnel;
+import com.vm.shadowsocks.tunnel.UdpRawTunnel;
 import com.vm.shadowsocks.tunnel.shadowsocks.ShadowsocksConfig;
 
 import java.net.InetAddress;
@@ -21,12 +21,16 @@ public class TunnelFactory {
 
     private static final String TAG = TunnelFactory.class.getSimpleName();
 
-    public static Tunnel wrap(AbstractSelectableChannel channel, Selector selector) {
-        return new RawTunnel(channel, selector);
+    public static TcpBaseTunnel wrap(SocketChannel channel, Selector selector) {
+        return new TcpRawTunnel(channel, selector);
     }
 
-    public static Tunnel createTunnelByConfig(InetSocketAddress destAddress, Selector selector, Class<? extends Tunnel> tunnel) throws Exception {
-        if (tunnel == TcpTunnel.class || tunnel == UdpTunnel.class) {
+    public static UdpRawTunnel wrap(DatagramChannel channel, Selector selector) {
+        return new UdpRawTunnel(channel, selector);
+    }
+
+    public static TcpBaseTunnel createTunnelByConfig(InetSocketAddress destAddress, Selector selector, Class<? extends TcpBaseTunnel> tunnel) throws Exception {
+        if (tunnel == TcpTunnel.class) {
             Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
             if (config instanceof ShadowsocksConfig) {
 //                return new TcpTunnel((ShadowsocksConfig) config, selector);
@@ -34,9 +38,9 @@ public class TunnelFactory {
                         .getDeclaredConstructor(ShadowsocksConfig.class, Selector.class)
                         .newInstance((ShadowsocksConfig) config, selector);
             }
-            throw new Exception("The config is unknow.");
+            throw new Exception("The config is unknown");
         } else {
-            return new RawTunnel(destAddress, selector);
+            return new TcpRawTunnel(destAddress, selector);
         }
     }
 
@@ -56,7 +60,7 @@ public class TunnelFactory {
         NatSession session = NatSessionManager.getSession(portKey);
         if (session != null) {
             if (ProxyConfig.Instance.needProxy(session.RemoteHost, session.RemoteIP)) {
-                Log.d(TAG, String.format("%d/%d:[PROXY] %s=>%s:%d\n", NatSessionManager.getSessionCount(), Tunnel.SessionCount, session.RemoteHost, CommonMethods.ipIntToString(session.RemoteIP), session.RemotePort & 0xFFFF));
+                Log.d(TAG, String.format("%d/%d:[PROXY] %s=>%s:%d\n", NatSessionManager.getSessionCount(), TcpBaseTunnel.SessionCount, session.RemoteHost, CommonMethods.ipIntToString(session.RemoteIP), session.RemotePort & 0xFFFF));
                 if (session.RemoteHost != null) {
                     return new InetSocketAddress(session.RemoteHost, session.RemotePort);
                 } else {
