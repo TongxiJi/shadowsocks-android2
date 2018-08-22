@@ -37,7 +37,8 @@ public class TcpTunnel extends TcpBaseTunnel {
 //        Log.d(TAG, addrRequest.toString());
         addrRequest.encodeAsByteBuf(buffer);
         buffer.flip();
-        ByteBuffer addrBuff = ByteBuffer.allocate(buffer.remaining());
+
+        ByteBuffer addrBuff = ByteBuffer.allocate(buffer.limit());
         addrBuff.put(buffer);
 
         buffer.clear();
