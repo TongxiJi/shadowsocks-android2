@@ -25,11 +25,10 @@ public class UdpTunnel extends UdpBaseTunnel {
     private ShadowsocksConfig m_Config;
     private boolean m_TunnelEstablished;
 
-    public UdpTunnel(ShadowsocksConfig config, Selector selector, InetSocketAddress destAddress) throws Exception {
+    public UdpTunnel(ShadowsocksConfig config, Selector selector) throws Exception {
         super(config.ServerAddress, selector);
         m_Config = config;
         m_Encryptor = CryptFactory.get(m_Config.EncryptMethod, m_Config.Password);
-        connect(destAddress);
         this.m_TunnelEstablished = true;
     }
 

@@ -101,7 +101,7 @@ public class TcpProxyServer implements Runnable {
         try {
             SocketChannel localChannel = m_ServerSocketChannel.accept();
             localTunnel = TunnelFactory.wrap(localChannel, m_Selector);
-            InetSocketAddress destAddress = TunnelFactory.getDestAddress(localChannel);
+            InetSocketAddress destAddress = TunnelFactory.getDestAddress(localChannel.socket().getPort());
 //            Log.d(TAG, "onAccepted: destAddress :" + (destAddress.toString()));
             if (destAddress != null) {
                 TcpBaseTunnel remoteTunnel;

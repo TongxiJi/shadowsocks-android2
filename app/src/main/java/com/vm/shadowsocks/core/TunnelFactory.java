@@ -31,15 +31,7 @@ public class TunnelFactory {
         return new UdpRawTunnel(channel, selector);
     }
 
-    protected static InetSocketAddress getDestAddress(AbstractSelectableChannel localChannel) throws Exception {
-        int portKey;
-        if (localChannel instanceof SocketChannel) {
-            portKey = ((SocketChannel) localChannel).socket().getPort();
-        } else if (localChannel instanceof DatagramChannel) {
-            portKey = ((DatagramChannel) localChannel).socket().getPort();
-        } else {
-            throw new Exception("unsupported channel type:" + localChannel.getClass().getName());
-        }
+    protected static InetSocketAddress getDestAddress(int portKey) throws Exception {
         NatSession session = NatSessionManager.getSession(portKey);
         if (session != null) {
             if (ProxyConfig.Instance.needProxy(session.RemoteHost, session.RemoteIP)) {

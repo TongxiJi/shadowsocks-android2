@@ -9,6 +9,8 @@ import com.vm.shadowsocks.tunnel.shadowsocks.ShadowsocksConfig;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -77,8 +79,10 @@ public class UdpProxyServer implements Runnable {
                     if (key.isValid()) {
                         try {
                             if (key.isReadable()) {
-                                onCheckRemoteTunnel(key);
-                                ((UdpBaseTunnel) key.attachment()).onReadable(key);
+                                ByteBuffer recvBuf = ByteBuffer.allocate(UdpBaseTunnel.UDP_BUFFER_SIZE);
+                                InetSocketAddress remoteAddr = (InetSocketAddress) ((DatagramChannel) key.channel()).receive(recvBuf);
+                                onCheckRemoteTunnel(key, remoteAddr);
+                                ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf);
                             } else if (key.isWritable()) {
                                 ((UdpBaseTunnel) key.attachment()).onWritable(key);
                             }
@@ -97,23 +101,25 @@ public class UdpProxyServer implements Runnable {
         }
     }
 
-    private void onCheckRemoteTunnel(SelectionKey key) throws Exception {
+    private void onCheckRemoteTunnel(SelectionKey key, InetSocketAddress remoteAddr) throws Exception {
         UdpBaseTunnel localTunnel = null;
         try {
             DatagramChannel localChannel = (DatagramChannel) key.channel();
-            InetSocketAddress destAddress = TunnelFactory.getDestAddress(localChannel);
+            InetSocketAddress destAddress = TunnelFactory.getDestAddress(remoteAddr.getPort());
             if (destAddress != null) {
-                if (!NatMapper.containUdpChannel(localChannel.socket().getPort())) {
+                if (!NatMapper.containUdpChannel(remoteAddr.getPort())) {
                     localTunnel = TunnelFactory.wrap(localChannel, m_Selector);
                     UdpBaseTunnel remoteTunnel;
                     Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
                     if (config instanceof ShadowsocksConfig) {
-                        remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector, destAddress);
+                        remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector);
+                        NatMapper.putUdpChannel(remoteAddr.getPort(), remoteTunnel.getInnerChannel());
                     } else {
                         throw new Exception("unsupported config type:" + config.getClass().getSimpleName());
                     }
                     remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
                     localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
+                    remoteTunnel.connect(destAddress);
                 }
             } else {
                 throw new Exception(String.format("Error: socket(%s:%d) target address is null.", localChannel.socket().getLocalAddress(), localChannel.socket().getPort()));

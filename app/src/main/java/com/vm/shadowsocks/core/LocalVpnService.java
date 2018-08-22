@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LocalVpnService extends VpnService implements Runnable {
     private static final String TAG = LocalVpnService.class.getSimpleName();
 
-    private static final Boolean ONLY_DNS_PROXY = true;
+    private static final Boolean ONLY_DNS_PROXY = false;
 
     public static LocalVpnService Instance;
     public static String ProxyUrl;

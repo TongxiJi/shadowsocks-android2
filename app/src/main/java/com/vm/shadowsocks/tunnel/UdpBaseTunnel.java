@@ -18,7 +18,7 @@ public abstract class UdpBaseTunnel {
     private static final String TAG = UdpBaseTunnel.class.getSimpleName();
     public static final int UDP_BUFFER_SIZE = 64 * 1024;
 
-    protected ByteBuffer buffer = ByteBuffer.allocate(UDP_BUFFER_SIZE);
+//    protected ByteBuffer buffer = ByteBuffer.allocate(UDP_BUFFER_SIZE);
 
     public static long SessionCount;
 
@@ -51,6 +51,10 @@ public abstract class UdpBaseTunnel {
         this.m_Selector = selector;
         this.m_ServerEP = serverAddress;
         SessionCount++;
+    }
+
+    public DatagramChannel getInnerChannel() {
+        return m_InnerChannel;
     }
 
     public InetSocketAddress getDestAddress() {
@@ -113,10 +117,9 @@ public abstract class UdpBaseTunnel {
         m_BrotherTunnel.beginReceive();//兄弟也开始收数据吧
     }
 
-    public void onReadable(SelectionKey key) {
+    public void onReceived(SelectionKey key,ByteBuffer buffer) {
         try {
-            buffer.clear();
-            int bytesRead = m_InnerChannel.read(buffer);
+            int bytesRead = buffer.limit();
             if (bytesRead > 0) {
                 buffer.flip();
                 afterReceived(buffer);//先让子类处理，例如解密数据。
@@ -127,9 +130,10 @@ public abstract class UdpBaseTunnel {
                         Log.d(TAG, String.format("%s can not read more.\n", m_ServerEP));
                     }
                 }
-            } else if (bytesRead < 0) {
-                this.dispose();//连接已关闭，释放资源。
             }
+//            else if (bytesRead < 0) {
+//                this.dispose();//连接已关闭，释放资源。
+//            }
         } catch (Exception e) {
             Log.d(TAG, e.getMessage());
             this.dispose();
