@@ -108,13 +108,12 @@ public class UdpProxyServer implements Runnable {
                     UdpBaseTunnel remoteTunnel;
                     Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
                     if (config instanceof ShadowsocksConfig) {
-                        remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector);
+                        remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector,destAddress);
                     } else {
                         throw new Exception("unsupported config type:" + config.getClass().getSimpleName());
                     }
                     remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
                     localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
-                    remoteTunnel.listen(destAddress);//开始连接
                 }
             } else {
                 Log.d(TAG, String.format("Error: socket(%s:%d) target host is null.", localChannel.socket().getInetAddress().toString(), localChannel.socket().getPort()));

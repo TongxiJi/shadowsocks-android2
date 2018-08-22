@@ -10,8 +10,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.AbstractSelectableChannel;
 
 /**
  * TODO not completed
@@ -31,7 +29,7 @@ public abstract class UdpBaseTunnel {
 
     protected abstract void onDispose();
 
-    private AbstractSelectableChannel m_InnerChannel;
+    private DatagramChannel m_InnerChannel;
     private ByteBuffer m_SendRemainBuffer;
     private Selector m_Selector;
     private UdpBaseTunnel m_BrotherTunnel;
@@ -39,14 +37,14 @@ public abstract class UdpBaseTunnel {
     private InetSocketAddress m_ServerEP;
     private InetSocketAddress m_DestAddress;
 
-    public UdpBaseTunnel(AbstractSelectableChannel innerChannel, Selector selector) {
+    public UdpBaseTunnel(DatagramChannel innerChannel, Selector selector) {
         this.m_InnerChannel = innerChannel;
         this.m_Selector = selector;
         SessionCount++;
     }
 
     public UdpBaseTunnel(InetSocketAddress serverAddress, Selector selector) throws IOException {
-        SocketChannel innerChannel = SocketChannel.open();
+        DatagramChannel innerChannel = DatagramChannel.open();
         innerChannel.configureBlocking(false);
         this.m_InnerChannel = innerChannel;
         this.m_Selector = selector;
@@ -64,11 +62,11 @@ public abstract class UdpBaseTunnel {
 
 
     public void listen(InetSocketAddress destAddress) throws Exception {
-        DatagramChannel channel = (DatagramChannel) m_InnerChannel;
+        DatagramChannel channel = m_InnerChannel;
         if (LocalVpnService.Instance.protect(channel.socket())) {//保护socket不走vpn
             m_DestAddress = destAddress;
             channel.socket().bind(null);
-            beginReceive();
+            onTunnelEstablished();
         } else {
             throw new Exception("VPN protect socket failed.");
         }
@@ -85,14 +83,7 @@ public abstract class UdpBaseTunnel {
     protected boolean write(ByteBuffer buffer, boolean copyRemainData) throws Exception {
         int bytesSent = 0;
         while (buffer.hasRemaining()) {
-            if (m_InnerChannel instanceof SocketChannel) {
-                bytesSent = ((SocketChannel) m_InnerChannel).write(buffer);
-            } else if (m_InnerChannel instanceof DatagramChannel) {
-                bytesSent = ((DatagramChannel) m_InnerChannel).write(buffer);
-            } else {
-                throw new Exception("unsupported channel type:" + m_InnerChannel.getClass().getName());
-            }
-
+            bytesSent = m_InnerChannel.write(buffer);
             if (bytesSent == 0) {
                 break;//不能再发送了，终止循环
             }
@@ -123,14 +114,7 @@ public abstract class UdpBaseTunnel {
     public void onReadable(SelectionKey key) {
         try {
             buffer.clear();
-            int bytesRead;
-            if (m_InnerChannel instanceof SocketChannel) {
-                bytesRead = ((SocketChannel) m_InnerChannel).read(buffer);
-            } else if (m_InnerChannel instanceof DatagramChannel) {
-                bytesRead = ((DatagramChannel) m_InnerChannel).read(buffer);
-            } else {
-                throw new Exception("unsupported channel type:" + m_InnerChannel.getClass().getName());
-            }
+            int bytesRead = m_InnerChannel.read(buffer);
             if (bytesRead > 0) {
                 buffer.flip();
                 afterReceived(buffer);//先让子类处理，例如解密数据。
