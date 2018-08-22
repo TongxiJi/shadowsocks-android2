@@ -33,13 +33,10 @@ public class TunnelFactory {
 
     protected static InetSocketAddress getDestAddress(AbstractSelectableChannel localChannel) throws Exception {
         int portKey;
-        InetAddress desAddr;
         if (localChannel instanceof SocketChannel) {
             portKey = ((SocketChannel) localChannel).socket().getPort();
-            desAddr = ((SocketChannel) localChannel).socket().getInetAddress();
         } else if (localChannel instanceof DatagramChannel) {
             portKey = ((DatagramChannel) localChannel).socket().getPort();
-            desAddr = ((DatagramChannel) localChannel).socket().getInetAddress();
         } else {
             throw new Exception("unsupported channel type:" + localChannel.getClass().getName());
         }
@@ -53,7 +50,7 @@ public class TunnelFactory {
                     return new InetSocketAddress(CommonMethods.ipIntToInet4Address(session.RemoteIP), session.RemotePort);
                 }
             } else {
-                return new InetSocketAddress(desAddr, session.RemotePort & 0xFFFF);
+                return new InetSocketAddress(CommonMethods.ipIntToInet4Address(session.RemoteIP), session.RemotePort & 0xFFFF);
             }
         }
         return null;

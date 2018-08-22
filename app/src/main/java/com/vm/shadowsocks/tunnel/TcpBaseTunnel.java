@@ -13,8 +13,8 @@ import java.nio.channels.SocketChannel;
 
 public abstract class TcpBaseTunnel {
     private static final String TAG = TcpBaseTunnel.class.getSimpleName();
-
-    protected ByteBuffer buffer = ByteBuffer.allocate(32 * 1024);
+    public static final int TCP_BUFFER_SIZE = 32 * 1024;
+    protected ByteBuffer buffer = ByteBuffer.allocate(TCP_BUFFER_SIZE);
 
     public static long SessionCount;
 

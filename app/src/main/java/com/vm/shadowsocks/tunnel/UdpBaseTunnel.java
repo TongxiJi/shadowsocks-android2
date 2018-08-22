@@ -16,8 +16,9 @@ import java.nio.channels.Selector;
  */
 public abstract class UdpBaseTunnel {
     private static final String TAG = UdpBaseTunnel.class.getSimpleName();
+    public static final int UDP_BUFFER_SIZE = 64 * 1024;
 
-    protected ByteBuffer buffer = ByteBuffer.allocate(64 * 1024);
+    protected ByteBuffer buffer = ByteBuffer.allocate(UDP_BUFFER_SIZE);
 
     public static long SessionCount;
 
@@ -61,12 +62,13 @@ public abstract class UdpBaseTunnel {
     }
 
 
-    public void listen(InetSocketAddress destAddress) throws Exception {
+    public void connect(InetSocketAddress destAddress) throws Exception {
         DatagramChannel channel = m_InnerChannel;
         if (LocalVpnService.Instance.protect(channel.socket())) {//保护socket不走vpn
             m_DestAddress = destAddress;
-            channel.socket().bind(null);
+            channel.socket().connect(m_ServerEP);
             onTunnelEstablished();
+            Log.d(TAG, "connect: "+m_ServerEP.toString());
         } else {
             throw new Exception("VPN protect socket failed.");
         }

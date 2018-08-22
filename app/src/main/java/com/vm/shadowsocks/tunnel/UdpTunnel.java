@@ -25,11 +25,11 @@ public class UdpTunnel extends UdpBaseTunnel {
     private ShadowsocksConfig m_Config;
     private boolean m_TunnelEstablished;
 
-    public UdpTunnel(ShadowsocksConfig config, Selector selector,InetSocketAddress destAddress) throws Exception {
+    public UdpTunnel(ShadowsocksConfig config, Selector selector, InetSocketAddress destAddress) throws Exception {
         super(config.ServerAddress, selector);
         m_Config = config;
         m_Encryptor = CryptFactory.get(m_Config.EncryptMethod, m_Config.Password);
-        listen(destAddress);
+        connect(destAddress);
         this.m_TunnelEstablished = true;
     }
 
@@ -39,9 +39,8 @@ public class UdpTunnel extends UdpBaseTunnel {
     }
 
     @Override
-    protected void beforeSend(ByteBuffer buffer) throws Exception {
-        ByteBuffer backup = buffer.slice();
-
+    protected void beforeSend(ByteBuffer rawBuff) throws Exception {
+        ByteBuffer addrBuff = ByteBuffer.allocate(256);
         InetSocketAddress descAddr = getDestAddress();
         // https://shadowsocks.org/en/spec/protocol.html
         AddrRequest addrRequest;
@@ -51,35 +50,37 @@ public class UdpTunnel extends UdpBaseTunnel {
             addrRequest = new AddrRequest(SocksAddressType.IPv4, descAddr.getAddress().getHostAddress(), descAddr.getPort());
         }
 //        Log.d(TAG, addrRequest.toString());
-        buffer.flip();
-        addrRequest.encodeAsByteBuf(buffer);//address frame
-        buffer.put(backup);//raw frame
+        addrRequest.encodeAsByteBuf(addrBuff);//address frame
 
-        buffer.flip();
-        byte[] bytes = new byte[buffer.limit()];
-        buffer.get(bytes);
+        ByteBuffer finalBuff = ByteBuffer.allocate(UDP_BUFFER_SIZE)
+                .put(addrBuff)
+                .put(rawBuff);
+        finalBuff.flip();
+
+        byte[] bytes = new byte[finalBuff.limit()];
+        finalBuff.get(bytes);
         bytes = m_Encryptor.encrypt(bytes);
 
-        buffer.clear();
-        buffer.put(bytes);
-        buffer.flip();
+        rawBuff.clear();
+        rawBuff.put(bytes);
+        rawBuff.flip();
     }
 
     @Override
     protected void afterReceived(ByteBuffer buffer) throws Exception {
-        byte[] bytes = new byte[buffer.remaining()];
+        byte[] bytes = new byte[buffer.limit()];
         buffer.get(bytes);
         bytes = m_Encryptor.decrypt(bytes);
 
-        buffer.clear();
-        buffer.put(bytes);
+        ByteBuffer decBuff = ByteBuffer.allocate(UDP_BUFFER_SIZE);
+        decBuff.put(bytes);
+        decBuff.flip();
 
-        AddrRequest addrRequest = AddrRequest.getAddrRequest(buffer);
+        AddrRequest addrRequest = AddrRequest.getAddrRequest(decBuff);
         Log.e(TAG, "receive data from: " + addrRequest.toString());
 
         buffer.clear();
-        buffer.put(bytes);
-        buffer.flip();
+        buffer.put(decBuff);
     }
 
     @Override

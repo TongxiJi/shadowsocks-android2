@@ -377,12 +377,11 @@ public class LocalVpnService extends VpnService implements Runnable {
                         }
                     }
                 } else {
-                    // 转发DNS数据包：
                     UDPHeader udpHeader = m_UDPHeader;
                     udpHeader.m_Offset = ipHeader.getHeaderLength();
                     Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
                     if (ipHeader.getSourceIP() == LOCAL_IP) {
-                        if (udpHeader.getSourcePort() == m_TcpProxyServer.Port) {// 收到本地UDP服务器数据
+                        if (udpHeader.getSourcePort() == udpProxyServer.Port) {// 收到本地UDP服务器数据
                             NatSession session = NatSessionManager.getSession(udpHeader.getDestinationPort());
                             if (session != null) {
                                 ipHeader.setSourceIP(ipHeader.getDestinationIP());
@@ -411,7 +410,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                             // 转发给本地UDP服务器
                             ipHeader.setSourceIP(ipHeader.getDestinationIP());
                             ipHeader.setDestinationIP(LOCAL_IP);
-                            udpHeader.setDestinationPort(m_TcpProxyServer.Port);
+                            udpHeader.setDestinationPort(udpProxyServer.Port);
 
                             CommonMethods.ComputeUDPChecksum(ipHeader, udpHeader);
                             m_VPNOutputStream.write(ipHeader.m_Data, ipHeader.m_Offset, size);

@@ -3,6 +3,8 @@ package com.vm.shadowsocks.core;
 import android.util.Log;
 import android.util.LruCache;
 
+import com.vm.shadowsocks.tcpip.CommonMethods;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -39,6 +41,7 @@ public class NatSessionManager {
     }
 
     public static NatSession createSession(int portKey, int remoteIP, int remotePort) {
+        Log.d(TAG, String.format("createSession portKey:%d remoteIP:%s remotePort:%d", portKey, CommonMethods.ipIntToString(remoteIP), remotePort));
         if (sessions.size() > MAX_SESSION_PERCENT * sessions.size()) {
             clearExpiredSessions();//清理过期的会话。
         }

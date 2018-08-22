@@ -90,14 +90,14 @@ public class UdpProxyServer implements Runnable {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.d(TAG, e.getMessage());
         } finally {
             this.stop();
             Log.d(TAG, "TcpServer thread exited.");
         }
     }
 
-    private void onCheckRemoteTunnel(SelectionKey key) {
+    private void onCheckRemoteTunnel(SelectionKey key) throws Exception {
         UdpBaseTunnel localTunnel = null;
         try {
             DatagramChannel localChannel = (DatagramChannel) key.channel();
@@ -108,7 +108,7 @@ public class UdpProxyServer implements Runnable {
                     UdpBaseTunnel remoteTunnel;
                     Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
                     if (config instanceof ShadowsocksConfig) {
-                        remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector,destAddress);
+                        remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector, destAddress);
                     } else {
                         throw new Exception("unsupported config type:" + config.getClass().getSimpleName());
                     }
@@ -116,14 +116,13 @@ public class UdpProxyServer implements Runnable {
                     localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
                 }
             } else {
-                Log.d(TAG, String.format("Error: socket(%s:%d) target host is null.", localChannel.socket().getInetAddress().toString(), localChannel.socket().getPort()));
-                localTunnel.dispose();
+                throw new Exception(String.format("Error: socket(%s:%d) target address is null.", localChannel.socket().getLocalAddress(), localChannel.socket().getPort()));
             }
         } catch (Exception e) {
-            Log.d(TAG, "Error: remote socket create failed: " + e.toString());
             if (localTunnel != null) {
                 localTunnel.dispose();
             }
+            throw new Exception("Error: remote socket create failed: " + e.toString());
         }
     }
 
