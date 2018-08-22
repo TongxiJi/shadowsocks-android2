@@ -74,10 +74,14 @@ public class DnsProxyServer implements Runnable {
             ByteBuffer dnsBuffer = ByteBuffer.allocate(2000);
             IPHeader ipHeader = new IPHeader(dnsBuffer.array(), 0);
             UDPHeader udpHeader = new UDPHeader(dnsBuffer.array(), 20);
+
+            dnsBuffer.position(28);
+            dnsBuffer = dnsBuffer.slice();
             while (m_Client != null && m_Client.isOpen()) {
                 dnsBuffer.clear();
                 SocketAddress socketAddress = m_Client.receive(dnsBuffer);
-                Log.d(TAG, "received from "+socketAddress.toString() + " remaining:" +dnsBuffer.remaining());
+                Log.d(TAG, "dns response received from "+socketAddress.toString() + " position:" +dnsBuffer.position());
+                dnsBuffer.flip();
                 try {
                     DnsPacket dnsPacket = DnsPacket.FromBytes(dnsBuffer);
                     if (dnsPacket != null) {
