@@ -13,14 +13,15 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
 
+/**
+ * TODO not completed
+ */
 public abstract class UdpBaseTunnel {
     private static final String TAG = UdpBaseTunnel.class.getSimpleName();
 
     protected ByteBuffer buffer = ByteBuffer.allocate(64 * 1024);
 
     public static long SessionCount;
-
-    protected abstract void onConnected(ByteBuffer buffer) throws Exception;
 
     protected abstract boolean isTunnelEstablished();
 
@@ -61,22 +62,13 @@ public abstract class UdpBaseTunnel {
         m_BrotherTunnel = brotherTunnel;
     }
 
-    public void connect(InetSocketAddress destAddress) throws Exception {
-        if (LocalVpnService.Instance.protect(((SocketChannel) m_InnerChannel).socket())) {//保护socket不走vpn
-            m_DestAddress = destAddress;
-            m_InnerChannel.register(m_Selector, SelectionKey.OP_CONNECT, this);//注册连接事件
-            ((SocketChannel) m_InnerChannel).connect(m_ServerEP);//连接目标
-        } else {
-            throw new Exception("VPN protect socket failed.");
-        }
-    }
 
     public void listen(InetSocketAddress destAddress) throws Exception {
         DatagramChannel channel = (DatagramChannel) m_InnerChannel;
         if (LocalVpnService.Instance.protect(channel.socket())) {//保护socket不走vpn
             m_DestAddress = destAddress;
             channel.socket().bind(null);
-            channel.register(m_Selector, SelectionKey.OP_READ, this);
+            beginReceive();
         } else {
             throw new Exception("VPN protect socket failed.");
         }
@@ -126,20 +118,6 @@ public abstract class UdpBaseTunnel {
     protected void onTunnelEstablished() throws Exception {
         this.beginReceive();//开始接收数据
         m_BrotherTunnel.beginReceive();//兄弟也开始收数据吧
-    }
-
-    public void onConnectible() {
-        try {
-            if (((SocketChannel) m_InnerChannel).finishConnect()) {//连接成功
-                onConnected(buffer);//通知子类TCP已连接，子类可以根据协议实现握手等。
-            } else {//连接失败
-                Log.d(TAG, String.format("Error: connect to %s failed.", m_ServerEP));
-                this.dispose();
-            }
-        } catch (Exception e) {
-            Log.d(TAG, String.format("Error: connect to %s failed: %s", m_ServerEP, e));
-            this.dispose();
-        }
     }
 
     public void onReadable(SelectionKey key) {

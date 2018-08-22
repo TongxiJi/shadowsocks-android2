@@ -2,8 +2,10 @@ package com.vm.shadowsocks.core;
 
 import android.util.Log;
 
+import com.vm.shadowsocks.tunnel.Config;
 import com.vm.shadowsocks.tunnel.TcpBaseTunnel;
 import com.vm.shadowsocks.tunnel.TcpTunnel;
+import com.vm.shadowsocks.tunnel.shadowsocks.ShadowsocksConfig;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -102,7 +104,13 @@ public class TcpProxyServer implements Runnable {
             InetSocketAddress destAddress = TunnelFactory.getDestAddress(localChannel);
 //            Log.d(TAG, "onAccepted: destAddress :" + (destAddress.toString()));
             if (destAddress != null) {
-                TcpBaseTunnel remoteTunnel = TunnelFactory.createTunnelByConfig(destAddress, m_Selector, TcpTunnel.class);
+                TcpBaseTunnel remoteTunnel;
+                Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
+                if (config instanceof ShadowsocksConfig) {
+                    remoteTunnel = new TcpTunnel((ShadowsocksConfig) config, m_Selector);
+                } else {
+                    throw new Exception("unsupported config type:" + config.getClass().getSimpleName());
+                }
                 remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
                 localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
                 remoteTunnel.connect(destAddress);//开始连接

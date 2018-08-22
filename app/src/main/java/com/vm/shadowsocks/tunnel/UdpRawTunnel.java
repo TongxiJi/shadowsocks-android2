@@ -6,6 +6,9 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.AbstractSelectableChannel;
 
+/**
+ * TODO not completed
+ */
 public class UdpRawTunnel extends UdpBaseTunnel {
 
     public UdpRawTunnel(InetSocketAddress serverAddress, Selector selector) throws Exception {
@@ -15,11 +18,6 @@ public class UdpRawTunnel extends UdpBaseTunnel {
     public UdpRawTunnel(DatagramChannel innerChannel, Selector selector) {
         super(innerChannel, selector);
         // TODO Auto-generated constructor stub
-    }
-
-    @Override
-    protected void onConnected(ByteBuffer buffer) throws Exception {
-        onTunnelEstablished();
     }
 
     @Override

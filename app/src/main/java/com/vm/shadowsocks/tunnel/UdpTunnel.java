@@ -17,6 +17,7 @@ import java.nio.channels.Selector;
  * E-MAIL:694270875@qq.com
  * Function:
  * Create Date:八月20,2018
+ * TODO not completed
  */
 public class UdpTunnel extends UdpBaseTunnel {
     private static final String TAG = UdpTunnel.class.getSimpleName();
@@ -28,10 +29,6 @@ public class UdpTunnel extends UdpBaseTunnel {
         super(config.ServerAddress, selector);
         m_Config = config;
         m_Encryptor = CryptFactory.get(m_Config.EncryptMethod, m_Config.Password);
-    }
-
-    @Override
-    protected void onConnected(ByteBuffer buffer) throws Exception {
     }
 
     @Override

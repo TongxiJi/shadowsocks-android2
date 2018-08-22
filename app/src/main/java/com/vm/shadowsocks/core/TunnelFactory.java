@@ -7,7 +7,9 @@ import com.vm.shadowsocks.tunnel.Config;
 import com.vm.shadowsocks.tunnel.TcpRawTunnel;
 import com.vm.shadowsocks.tunnel.TcpTunnel;
 import com.vm.shadowsocks.tunnel.TcpBaseTunnel;
+import com.vm.shadowsocks.tunnel.UdpBaseTunnel;
 import com.vm.shadowsocks.tunnel.UdpRawTunnel;
+import com.vm.shadowsocks.tunnel.UdpTunnel;
 import com.vm.shadowsocks.tunnel.shadowsocks.ShadowsocksConfig;
 
 import java.net.InetAddress;
@@ -28,22 +30,6 @@ public class TunnelFactory {
     public static UdpRawTunnel wrap(DatagramChannel channel, Selector selector) {
         return new UdpRawTunnel(channel, selector);
     }
-
-    public static TcpBaseTunnel createTunnelByConfig(InetSocketAddress destAddress, Selector selector, Class<? extends TcpBaseTunnel> tunnel) throws Exception {
-        if (tunnel == TcpTunnel.class) {
-            Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
-            if (config instanceof ShadowsocksConfig) {
-//                return new TcpTunnel((ShadowsocksConfig) config, selector);
-                return tunnel
-                        .getDeclaredConstructor(ShadowsocksConfig.class, Selector.class)
-                        .newInstance((ShadowsocksConfig) config, selector);
-            }
-            throw new Exception("The config is unknown");
-        } else {
-            return new TcpRawTunnel(destAddress, selector);
-        }
-    }
-
 
     protected static InetSocketAddress getDestAddress(AbstractSelectableChannel localChannel) throws Exception {
         int portKey;
