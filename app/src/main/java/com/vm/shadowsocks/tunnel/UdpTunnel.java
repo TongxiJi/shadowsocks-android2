@@ -11,6 +11,7 @@ import com.vm.shadowsocks.tunnel.shadowsocks.ShadowsocksConfig;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
+import java.util.Arrays;
 
 /**
  * Author:tonnyji
@@ -29,6 +30,7 @@ public class UdpTunnel extends UdpBaseTunnel {
         super(config.ServerAddress, selector);
         m_Config = config;
         m_Encryptor = CryptFactory.get(m_Config.EncryptMethod, m_Config.Password);
+        m_Encryptor.ivSetIgnore(true);
         this.m_TunnelEstablished = true;
     }
 
@@ -39,6 +41,7 @@ public class UdpTunnel extends UdpBaseTunnel {
 
     @Override
     protected void beforeSend(ByteBuffer rawBuff) throws Exception {
+        Log.d(TAG, "beforeSend: ");
         ByteBuffer addrBuff = ByteBuffer.allocate(256);
         InetSocketAddress descAddr = getDestAddress();
         // https://shadowsocks.org/en/spec/protocol.html
@@ -50,11 +53,16 @@ public class UdpTunnel extends UdpBaseTunnel {
         }
 //        Log.d(TAG, addrRequest.toString());
         addrRequest.encodeAsByteBuf(addrBuff);//address frame
+        addrBuff.flip();
+//        Log.d(TAG, "addrBuff beforeSend: "+ Arrays.toString(addrBuff.array()));
+
 
         ByteBuffer finalBuff = ByteBuffer.allocate(UDP_BUFFER_SIZE)
                 .put(addrBuff)
                 .put(rawBuff);
         finalBuff.flip();
+
+//        Log.d(TAG, "beforeSend: "+ Arrays.toString(finalBuff.array()));
 
         byte[] bytes = new byte[finalBuff.limit()];
         finalBuff.get(bytes);
@@ -67,19 +75,26 @@ public class UdpTunnel extends UdpBaseTunnel {
 
     @Override
     protected void afterReceived(ByteBuffer buffer) throws Exception {
+        Log.d(TAG, "afterReceived: ");
         byte[] bytes = new byte[buffer.limit()];
         buffer.get(bytes);
         bytes = m_Encryptor.decrypt(bytes);
+//        Log.d(TAG, "afterReceived: " + Arrays.toString(bytes));
 
         ByteBuffer decBuff = ByteBuffer.allocate(UDP_BUFFER_SIZE);
         decBuff.put(bytes);
         decBuff.flip();
 
         AddrRequest addrRequest = AddrRequest.getAddrRequest(decBuff);
-        Log.e(TAG, "receive data from: " + addrRequest.toString());
+        if (addrRequest == null) {
+//            Log.e(TAG, "failed to get address");
+            throw new Exception("failed to get address");
+        }
+        Log.d(TAG, "receive data from: " + addrRequest.toString());
 
         buffer.clear();
         buffer.put(decBuff);
+        buffer.flip();
     }
 
     @Override

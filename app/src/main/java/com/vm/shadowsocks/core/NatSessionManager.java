@@ -14,7 +14,7 @@ public class NatSessionManager {
     private static final float MAX_SESSION_PERCENT = 0.6f;
     private static final long SESSION_TIMEOUT_NS = 60 * 1000000000L;
 
-    private static final LruCache<Integer, NatSession> sessions = new LruCache<>(400);
+    private static final LruCache<Integer, NatSession> sessions = new LruCache<>(1000);
 
     public static NatSession getSession(int portKey) {
         return sessions.get(portKey);
@@ -41,7 +41,7 @@ public class NatSessionManager {
     }
 
     public static NatSession createSession(int portKey, int remoteIP, int remotePort) {
-        Log.d(TAG, String.format("createSession portKey:%d remoteIP:%s remotePort:%d", portKey, CommonMethods.ipIntToString(remoteIP), remotePort));
+//        Log.d(TAG, String.format("createSession portKey:%d remoteIP:%s remotePort:%d", portKey, CommonMethods.ipIntToString(remoteIP), remotePort));
         if (sessions.size() > MAX_SESSION_PERCENT * sessions.size()) {
             clearExpiredSessions();//清理过期的会话。
         }

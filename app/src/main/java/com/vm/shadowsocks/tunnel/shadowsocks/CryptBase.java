@@ -71,6 +71,7 @@ public abstract class CryptBase implements ICrypt {
     protected final ShadowSocksKey _ssKey;
     protected final int _ivLength;
     protected final int _keyLength;
+    protected boolean _ignoreIVSet;
     protected boolean _encryptIVSet;
     protected boolean _decryptIVSet;
     protected byte[] _encryptIV;
@@ -87,6 +88,11 @@ public abstract class CryptBase implements ICrypt {
         _keyLength = getKeyLength();
         _ssKey = new ShadowSocksKey(password, _keyLength);
         _key = getKey();
+    }
+
+    @Override
+    public void ivSetIgnore(boolean _ignoreIVSet) {
+        this._ignoreIVSet = _ignoreIVSet;
     }
 
     protected void setIV(byte[] iv, boolean isEncrypt) {
@@ -133,7 +139,7 @@ public abstract class CryptBase implements ICrypt {
     public void encrypt(byte[] data, ByteArrayOutputStream stream) {
         synchronized (encLock) {
             stream.reset();
-            if (!_encryptIVSet) {
+            if (!_encryptIVSet || _ignoreIVSet) {
                 _encryptIVSet = true;
                 byte[] iv = new byte[_ivLength];
                 new SecureRandom().nextBytes(iv);
@@ -163,7 +169,7 @@ public abstract class CryptBase implements ICrypt {
 
         synchronized (decLock) {
             stream.reset();
-            if (!_decryptIVSet) {
+            if (!_decryptIVSet || _ignoreIVSet) {
                 _decryptIVSet = true;
                 setIV(data, false);
                 temp = new byte[data.length - _ivLength];

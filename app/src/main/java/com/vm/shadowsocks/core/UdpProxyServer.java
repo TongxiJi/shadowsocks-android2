@@ -9,7 +9,6 @@ import com.vm.shadowsocks.tunnel.shadowsocks.ShadowsocksConfig;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -21,7 +20,6 @@ import java.util.Iterator;
  */
 public class UdpProxyServer implements Runnable {
     private static final String TAG = UdpProxyServer.class.getSimpleName();
-    private static final int UDP_RECV_BUFF_SIZE = 64 * 1024;
 
     public boolean Stopped = true;
     public int Port;
@@ -77,11 +75,27 @@ public class UdpProxyServer implements Runnable {
                 while (keyIterator.hasNext()) {
                     SelectionKey key = keyIterator.next();
                     if (key.isValid()) {
+                        keyIterator.remove();
                         try {
                             if (key.isReadable()) {
+                                DatagramChannel channel = ((DatagramChannel) key.channel());
                                 ByteBuffer recvBuf = ByteBuffer.allocate(UdpBaseTunnel.UDP_BUFFER_SIZE);
-                                InetSocketAddress remoteAddr = (InetSocketAddress) ((DatagramChannel) key.channel()).receive(recvBuf);
-                                onCheckRemoteTunnel(key, remoteAddr);
+                                InetSocketAddress remoteAddr = (InetSocketAddress) channel.receive(recvBuf);
+                                recvBuf.flip();
+                                if (!remoteAddr.toString().contains("202.144.192.75")) {//10.30.52.151
+                                    Log.d(TAG, "receive from ss-server");
+                                    onCheckRemoteTunnel(key, remoteAddr);
+                                } else {
+                                    Log.d(TAG, "local:" + channel.socket().getLocalSocketAddress().toString());
+                                    Log.d(TAG, "remote :" + remoteAddr.toString());
+//                                    NatMapper.remoteMapToString();
+                                    int keyPort = channel.socket().getLocalPort();
+                                    UdpBaseTunnel remoteTunnel = NatMapper.getRemoteUdpChannel(keyPort);
+                                    key.attach(remoteTunnel);
+                                    if (key.attachment() == null) {
+                                        Log.d(TAG, keyPort + " run: attachment is null:" + key.attachment());
+                                    }
+                                }
                                 ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf);
                             } else if (key.isWritable()) {
                                 ((UdpBaseTunnel) key.attachment()).onWritable(key);
@@ -90,7 +104,6 @@ public class UdpProxyServer implements Runnable {
                             Log.d(TAG, e.toString());
                         }
                     }
-                    keyIterator.remove();
                 }
             }
         } catch (Exception e) {
@@ -113,13 +126,13 @@ public class UdpProxyServer implements Runnable {
                     Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
                     if (config instanceof ShadowsocksConfig) {
                         remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector);
-                        NatMapper.putUdpChannel(remoteAddr.getPort(), remoteTunnel.getInnerChannel());
                     } else {
                         throw new Exception("unsupported config type:" + config.getClass().getSimpleName());
                     }
                     remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
                     localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
                     remoteTunnel.connect(destAddress);
+                    NatMapper.putUdpChannel(remoteAddr.getPort(), localTunnel);
                 }
             } else {
                 throw new Exception(String.format("Error: socket(%s:%d) target address is null.", localChannel.socket().getLocalAddress(), localChannel.socket().getPort()));
@@ -128,6 +141,7 @@ public class UdpProxyServer implements Runnable {
             if (localTunnel != null) {
                 localTunnel.dispose();
             }
+            Log.d(TAG, "remote addr:" + remoteAddr.toString());
             throw new Exception("Error: remote socket create failed: " + e.toString());
         }
     }

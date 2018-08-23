@@ -37,6 +37,8 @@ import java.io.ByteArrayOutputStream;
  * Interface of crypt
  */
 public interface ICrypt {
+    void ivSetIgnore(boolean ignore);
+
     byte[] encrypt(byte[] data);
 
     byte[] decrypt(byte[] data);

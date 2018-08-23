@@ -57,6 +57,10 @@ public abstract class UdpBaseTunnel {
         return m_InnerChannel;
     }
 
+    public UdpBaseTunnel getBrotherTunnel() {
+        return m_BrotherTunnel;
+    }
+
     public InetSocketAddress getDestAddress() {
         return m_DestAddress;
     }
@@ -72,7 +76,7 @@ public abstract class UdpBaseTunnel {
             m_DestAddress = destAddress;
             channel.socket().connect(m_ServerEP);
             onTunnelEstablished();
-            Log.d(TAG, "connect: "+m_ServerEP.toString());
+            Log.d(TAG, "connect: " + m_ServerEP.toString());
         } else {
             throw new Exception("VPN protect socket failed.");
         }
@@ -117,11 +121,11 @@ public abstract class UdpBaseTunnel {
         m_BrotherTunnel.beginReceive();//兄弟也开始收数据吧
     }
 
-    public void onReceived(SelectionKey key,ByteBuffer buffer) {
+    public void onReceived(SelectionKey key, ByteBuffer buffer) {
         try {
             int bytesRead = buffer.limit();
+            Log.d(TAG, "onReceived: " + bytesRead);
             if (bytesRead > 0) {
-                buffer.flip();
                 afterReceived(buffer);//先让子类处理，例如解密数据。
                 if (isTunnelEstablished() && buffer.hasRemaining()) {//将读到的数据，转发给兄弟。
                     m_BrotherTunnel.beforeSend(buffer);//发送之前，先让子类处理，例如做加密等。
@@ -129,6 +133,8 @@ public abstract class UdpBaseTunnel {
                         key.cancel();//兄弟吃不消，就取消读取事件。
                         Log.d(TAG, String.format("%s can not read more.\n", m_ServerEP));
                     }
+                } else {
+                    Log.d(TAG, "not sent to brother tunnel" + isTunnelEstablished() + buffer.hasRemaining());
                 }
             }
 //            else if (bytesRead < 0) {

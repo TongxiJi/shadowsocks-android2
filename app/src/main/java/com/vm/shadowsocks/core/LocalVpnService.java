@@ -367,7 +367,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                     // 转发DNS数据包：
                     UDPHeader udpHeader = m_UDPHeader;
                     udpHeader.m_Offset = ipHeader.getHeaderLength();
-                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
+//                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
                     if (ipHeader.getSourceIP() == LOCAL_IP && udpHeader.getDestinationPort() == 53) {
                         m_DNSBuffer.clear();
                         m_DNSBuffer.limit(ipHeader.getDataLength() - 8);
@@ -379,7 +379,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                 } else {
                     UDPHeader udpHeader = m_UDPHeader;
                     udpHeader.m_Offset = ipHeader.getHeaderLength();
-                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
+//                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
                     if (ipHeader.getSourceIP() == LOCAL_IP) {
                         if (udpHeader.getSourcePort() == udpProxyServer.Port) {// 收到本地UDP服务器数据
                             NatSession session = NatSessionManager.getSession(udpHeader.getDestinationPort());

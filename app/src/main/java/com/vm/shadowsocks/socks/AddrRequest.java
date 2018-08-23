@@ -1,13 +1,18 @@
 package com.vm.shadowsocks.socks;
 
+import android.util.Log;
+
 import java.net.IDN;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 public final class AddrRequest {
+    private static final String TAG = AddrRequest.class.getSimpleName();
+
     private final SocksAddressType addressType;
     private final String host;
     private final int port;
@@ -78,9 +83,9 @@ public final class AddrRequest {
         int port;
         switch (addressType) {
             case IPv4: {
-                ByteBuffer ipv4Buff = ByteBuffer.allocate(4);
-                ipv4Buff.put(byteBuf);
-                host = Inet4Address.getByAddress(ipv4Buff.array()).toString();
+                byte[] ipv4Buff = new byte[4];
+                byteBuf.get(ipv4Buff);
+                host = Inet4Address.getByAddress(ipv4Buff).toString();
                 port = byteBuf.getShort();
                 request = new AddrRequest(addressType, host, port);
                 break;
@@ -95,9 +100,9 @@ public final class AddrRequest {
                 break;
             }
             case IPv6: {
-                ByteBuffer ipv6Buff = ByteBuffer.allocate(16);
-                ipv6Buff.put(byteBuf);
-                host = Inet6Address.getByAddress(ipv6Buff.array()).toString();
+                byte[] ipv6Buff = new byte[16];
+                byteBuf.get(ipv6Buff);
+                host = Inet6Address.getByAddress(ipv6Buff).toString();
                 port = byteBuf.getShort();
                 request = new AddrRequest(addressType, host, port);
                 break;
