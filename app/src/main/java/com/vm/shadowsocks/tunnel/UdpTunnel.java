@@ -41,7 +41,7 @@ public class UdpTunnel extends UdpBaseTunnel {
 
     @Override
     protected void beforeSend(ByteBuffer rawBuff) throws Exception {
-        Log.d(TAG, "beforeSend: ");
+//        Log.d(TAG, "beforeSend: ");
         ByteBuffer addrBuff = ByteBuffer.allocate(256);
         InetSocketAddress descAddr = getDestAddress();
         // https://shadowsocks.org/en/spec/protocol.html
@@ -75,7 +75,7 @@ public class UdpTunnel extends UdpBaseTunnel {
 
     @Override
     protected void afterReceived(ByteBuffer buffer) throws Exception {
-        Log.d(TAG, "afterReceived: ");
+//        Log.d(TAG, "afterReceived: ");
         byte[] bytes = new byte[buffer.limit()];
         buffer.get(bytes);
         bytes = m_Encryptor.decrypt(bytes);

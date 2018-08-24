@@ -34,7 +34,7 @@ public class UdpRawTunnel extends UdpBaseTunnel {
     @Override
     protected void afterReceived(ByteBuffer buffer) throws Exception {
         // TODO Auto-generated method stub
-        Log.d(TAG, "afterReceived: ");
+//        Log.d(TAG, "afterReceived: ");
     }
 
     @Override
@@ -45,13 +45,11 @@ public class UdpRawTunnel extends UdpBaseTunnel {
     @Override
     protected void onDispose() {
         // TODO Auto-generated method stub
-
     }
 
-//    @Override
-//    public void onReceived(SelectionKey key, ByteBuffer buffer) {
-//        Log.d(TAG, "onReceived: start");
-//        super.onReceived(key, buffer);
-//        Log.d(TAG, "onReceived: end");
-//    }
+    @Override
+    public void onReceived(SelectionKey key, ByteBuffer buffer, InetSocketAddress remoteAddr) throws Exception {
+//        Log.d(TAG, "onReceived: ");
+        super.onReceived(key, buffer, remoteAddr);
+    }
 }

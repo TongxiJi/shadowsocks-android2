@@ -126,7 +126,7 @@ public abstract class UdpBaseTunnel {
         this.m_ServerEP = remoteAddr;
 
         int bytesRead = buffer.limit();
-        Log.d(TAG, "onReceived: " + bytesRead);
+//        Log.d(TAG, "onReceived: " + bytesRead);
         if (bytesRead > 0) {
             afterReceived(buffer);//先让子类处理，例如解密数据。
             if (isTunnelEstablished() && buffer.hasRemaining()) {//将读到的数据，转发给兄弟。
@@ -138,32 +138,29 @@ public abstract class UdpBaseTunnel {
             } else {
                 Log.d(TAG, "not sent to brother tunnel" + isTunnelEstablished() + buffer.hasRemaining());
             }
-        } else if (bytesRead < 0) {
-            this.dispose();//连接已关闭，释放资源。
         }
+//        else if (bytesRead < 0) {
+//            this.dispose();//连接已关闭，释放资源。
+//        }
     }
 
-    public void onWritable(SelectionKey key) {
-        try {
-            this.beforeSend(m_SendRemainBuffer);//发送之前，先让子类处理，例如做加密等。
-            if (this.write(m_SendRemainBuffer, false)) {//如果剩余数据已经发送完毕
-                key.cancel();//取消写事件。
-                if (isTunnelEstablished()) {
-                    m_BrotherTunnel.beginReceive();//这边数据发送完毕，通知兄弟可以收数据了。
-                } else {
-                    this.beginReceive();//开始接收代理服务器响应数据
-                }
+    public void onWritable(SelectionKey key) throws Exception {
+        this.beforeSend(m_SendRemainBuffer);//发送之前，先让子类处理，例如做加密等。
+        if (this.write(m_SendRemainBuffer, false)) {//如果剩余数据已经发送完毕
+            key.cancel();//取消写事件。
+            if (isTunnelEstablished()) {
+                m_BrotherTunnel.beginReceive();//这边数据发送完毕，通知兄弟可以收数据了。
+            } else {
+                this.beginReceive();//开始接收代理服务器响应数据
             }
-        } catch (Exception e) {
-            this.dispose();
         }
     }
 
-    public void dispose() {
-        disposeInternal(true);
-    }
+//    public void dispose() {
+//        disposeInternal(true);
+//    }
 
-    void disposeInternal(boolean disposeBrother) {
+    public void disposeInternal(boolean disposeBrother) {
         if (m_Disposed) {
             return;
         } else {

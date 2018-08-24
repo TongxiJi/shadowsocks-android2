@@ -11,10 +11,11 @@ import java.util.Map;
 public class NatSessionManager {
     private static final String TAG = NatSessionManager.class.getSimpleName();
 
+    private static final int MAX_SESSION = 1000;
     private static final float MAX_SESSION_PERCENT = 0.6f;
     private static final long SESSION_TIMEOUT_NS = 60 * 1000000000L;
 
-    private static final LruCache<Integer, NatSession> sessions = new LruCache<>(1000);
+    private static final LruCache<Integer, NatSession> sessions = new LruCache<>(MAX_SESSION);
 
     public static NatSession getSession(int portKey) {
         return sessions.get(portKey);
@@ -25,6 +26,7 @@ public class NatSessionManager {
     }
 
     static void clearExpiredSessions() {
+        Log.d(TAG, "clearExpiredSessions: ");
         long now = System.nanoTime();
         Map<Integer, NatSession> snapshotMap = sessions.snapshot();
         for (Map.Entry<Integer, NatSession> entry : snapshotMap.entrySet()) {
@@ -42,7 +44,7 @@ public class NatSessionManager {
 
     public static NatSession createSession(int portKey, int remoteIP, int remotePort) {
 //        Log.d(TAG, String.format("createSession portKey:%d remoteIP:%s remotePort:%d", portKey, CommonMethods.ipIntToString(remoteIP), remotePort));
-        if (sessions.size() > MAX_SESSION_PERCENT * sessions.size()) {
+        if (sessions.size() > MAX_SESSION_PERCENT * MAX_SESSION) {
             clearExpiredSessions();//清理过期的会话。
         }
 

@@ -77,13 +77,12 @@ public class UdpProxyServer implements Runnable {
                     if (key.isValid()) {
                         keyIterator.remove();
                         try {
-                            Log.d(TAG, "run:  key is readable: "+key.isReadable());
                             if (key.isReadable()) {
                                 DatagramChannel channel = ((DatagramChannel) key.channel());
                                 ByteBuffer recvBuf = ByteBuffer.allocate(UdpBaseTunnel.UDP_BUFFER_SIZE);
                                 InetSocketAddress remoteAddr = (InetSocketAddress) channel.receive(recvBuf);
                                 recvBuf.flip();
-                                if (!remoteAddr.toString().contains("10.30.52.151")) {
+                                if (!remoteAddr.toString().contains("35.194.165.9")) {
                                     Log.d(TAG, "receive from ss-server");
                                     onCheckRemoteTunnel(key, remoteAddr);
                                 } else {
@@ -140,9 +139,6 @@ public class UdpProxyServer implements Runnable {
                 throw new Exception(String.format("Error: socket(%s:%d) target address is null.", localChannel.socket().getLocalAddress(), localChannel.socket().getPort()));
             }
         } catch (Exception e) {
-            if (localTunnel != null) {
-                localTunnel.dispose();
-            }
             Log.d(TAG, "remote addr:" + remoteAddr.toString());
             throw new Exception("Error: remote socket create failed: " + e.toString());
         }

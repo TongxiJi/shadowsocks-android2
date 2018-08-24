@@ -55,10 +55,9 @@ public class NatMapper {
         UdpBaseTunnel udpChannel = removeUdpMapping(keyPort);
         if (udpChannel != null) {
             Log.d(TAG, "Proxy << Target Disconnect");
-            udpChannel.getInnerChannel().close();
             UdpBaseTunnel broChannel = udpChannel.getBrotherTunnel();
             if (broChannel != null) {
-                broChannel.getInnerChannel().close();
+                broChannel.disposeInternal(false);
             }
         }
     }
