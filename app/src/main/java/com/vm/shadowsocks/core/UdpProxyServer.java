@@ -82,20 +82,19 @@ public class UdpProxyServer implements Runnable {
                                 ByteBuffer recvBuf = ByteBuffer.allocate(UdpBaseTunnel.UDP_BUFFER_SIZE);
                                 InetSocketAddress remoteAddr = (InetSocketAddress) channel.receive(recvBuf);
                                 recvBuf.flip();
-                                if (!remoteAddr.toString().contains("35.194.165.9")) {
-                                    Log.d(TAG, "receive from ss-server");
+                                if (!remoteAddr.toString().contains("10.30.52.151")) {
                                     onCheckRemoteTunnel(key, remoteAddr);
                                 } else {
-                                    Log.d(TAG, "local:" + channel.socket().getLocalSocketAddress().toString());
-                                    Log.d(TAG, "remote :" + remoteAddr.toString());
+//                                    Log.d(TAG, "local:" + channel.socket().getLocalSocketAddress().toString());
+//                                    Log.d(TAG, "remote :" + remoteAddr.toString());
 //                                    NatMapper.remoteMapToString();
                                     int keyPort = channel.socket().getLocalPort();
                                     UdpBaseTunnel remoteTunnel = NatMapper.getRemoteUdpChannel(keyPort);
                                     key.attach(remoteTunnel);
                                 }
-                                if (key.attachment() == null) {
-                                    Log.d(TAG, " run: attachment is null:" + key.attachment());
-                                }
+//                                if (key.attachment() == null) {
+//                                    Log.d(TAG, " run: attachment is null:" + key.attachment());
+//                                }
                                 ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf,remoteAddr);
                             } else if (key.isWritable()) {
                                 ((UdpBaseTunnel) key.attachment()).onWritable(key);
