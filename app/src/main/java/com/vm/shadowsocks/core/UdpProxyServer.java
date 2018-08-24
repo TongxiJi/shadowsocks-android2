@@ -77,12 +77,13 @@ public class UdpProxyServer implements Runnable {
                     if (key.isValid()) {
                         keyIterator.remove();
                         try {
+                            Log.d(TAG, "run:  key is readable: "+key.isReadable());
                             if (key.isReadable()) {
                                 DatagramChannel channel = ((DatagramChannel) key.channel());
                                 ByteBuffer recvBuf = ByteBuffer.allocate(UdpBaseTunnel.UDP_BUFFER_SIZE);
                                 InetSocketAddress remoteAddr = (InetSocketAddress) channel.receive(recvBuf);
                                 recvBuf.flip();
-                                if (!remoteAddr.toString().contains("202.144.192.75")) {//10.30.52.151
+                                if (!remoteAddr.toString().contains("10.30.52.151")) {
                                     Log.d(TAG, "receive from ss-server");
                                     onCheckRemoteTunnel(key, remoteAddr);
                                 } else {
@@ -92,11 +93,11 @@ public class UdpProxyServer implements Runnable {
                                     int keyPort = channel.socket().getLocalPort();
                                     UdpBaseTunnel remoteTunnel = NatMapper.getRemoteUdpChannel(keyPort);
                                     key.attach(remoteTunnel);
-                                    if (key.attachment() == null) {
-                                        Log.d(TAG, keyPort + " run: attachment is null:" + key.attachment());
-                                    }
                                 }
-                                ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf);
+                                if (key.attachment() == null) {
+                                    Log.d(TAG, " run: attachment is null:" + key.attachment());
+                                }
+                                ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf,remoteAddr);
                             } else if (key.isWritable()) {
                                 ((UdpBaseTunnel) key.attachment()).onWritable(key);
                             }
@@ -107,6 +108,7 @@ public class UdpProxyServer implements Runnable {
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             Log.d(TAG, e.getMessage());
         } finally {
             this.stop();

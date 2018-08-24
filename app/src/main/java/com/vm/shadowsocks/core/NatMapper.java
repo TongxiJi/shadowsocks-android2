@@ -23,9 +23,10 @@ public class NatMapper {
 
     static void putUdpChannel(Integer keyPort, UdpBaseTunnel udpChannel) {
 //        Log.d(TAG, "start putUdpChannel");
-        udpTable.put(keyPort, udpChannel);
         UdpBaseTunnel brotherTunnel = udpChannel.getBrotherTunnel();
-        int remoteKeyPort =brotherTunnel.getInnerChannel().socket().getLocalPort();
+        if (brotherTunnel == null) return;
+        udpTable.put(keyPort, udpChannel);
+        int remoteKeyPort = brotherTunnel.getInnerChannel().socket().getLocalPort();
         remoteUdpTable.put(remoteKeyPort, brotherTunnel);
 //        Log.d(TAG, "putUdpChannel: remoteKeyPort:"+remoteKeyPort);
     }
@@ -44,6 +45,7 @@ public class NatMapper {
 
     private static UdpBaseTunnel removeUdpMapping(Integer keyPort) {
         UdpBaseTunnel tunnel = udpTable.remove(keyPort);
+        if (tunnel == null) return null;
         UdpBaseTunnel brotherTunnel = tunnel.getBrotherTunnel();
         remoteUdpTable.remove(brotherTunnel.getInnerChannel().socket().getLocalPort());
         return tunnel;
@@ -54,14 +56,17 @@ public class NatMapper {
         if (udpChannel != null) {
             Log.d(TAG, "Proxy << Target Disconnect");
             udpChannel.getInnerChannel().close();
-            udpChannel.getBrotherTunnel().getInnerChannel().close();
+            UdpBaseTunnel broChannel = udpChannel.getBrotherTunnel();
+            if (broChannel != null) {
+                broChannel.getInnerChannel().close();
+            }
         }
     }
 
     public static void remoteMapToString() {
         Set<Map.Entry<Integer, UdpBaseTunnel>> entrySet = remoteUdpTable.snapshot().entrySet();
-        Log.d(TAG, "remoteMap size: " +entrySet.size());
-        for (Map.Entry<Integer, UdpBaseTunnel> tunnelEntry :entrySet) {
+        Log.d(TAG, "remoteMap size: " + entrySet.size());
+        for (Map.Entry<Integer, UdpBaseTunnel> tunnelEntry : entrySet) {
             Log.d(TAG, "remoteMaptoString: " + tunnelEntry.getKey() + "  local port:" + tunnelEntry.getValue().getInnerChannel().socket().getLocalPort());
         }
     }

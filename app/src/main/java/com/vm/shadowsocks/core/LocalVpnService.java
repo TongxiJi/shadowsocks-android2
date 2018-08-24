@@ -316,6 +316,7 @@ public class LocalVpnService extends VpnService implements Runnable {
     }
 
     void onIPPacketReceived(IPHeader ipHeader, int size) throws IOException {
+//        Log.d(TAG, "onIPPacketReceived,protocol:" + ipHeader.getProtocol());
         switch (ipHeader.getProtocol()) {
             case IPHeader.TCP:
                 TCPHeader tcpHeader = m_TCPHeader;
@@ -379,7 +380,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                 } else {
                     UDPHeader udpHeader = m_UDPHeader;
                     udpHeader.m_Offset = ipHeader.getHeaderLength();
-//                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
+                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
                     if (ipHeader.getSourceIP() == LOCAL_IP) {
                         if (udpHeader.getSourcePort() == udpProxyServer.Port) {// 收到本地UDP服务器数据
                             NatSession session = NatSessionManager.getSession(udpHeader.getDestinationPort());

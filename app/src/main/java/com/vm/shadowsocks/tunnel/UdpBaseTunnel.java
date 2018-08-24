@@ -93,7 +93,8 @@ public abstract class UdpBaseTunnel {
     protected boolean write(ByteBuffer buffer, boolean copyRemainData) throws Exception {
         int bytesSent = 0;
         while (buffer.hasRemaining()) {
-            bytesSent = m_InnerChannel.write(buffer);
+//            bytesSent = m_InnerChannel.write();
+            bytesSent = m_InnerChannel.send(buffer, m_ServerEP);
             if (bytesSent == 0) {
                 break;//不能再发送了，终止循环
             }
@@ -121,28 +122,24 @@ public abstract class UdpBaseTunnel {
         m_BrotherTunnel.beginReceive();//兄弟也开始收数据吧
     }
 
-    public void onReceived(SelectionKey key, ByteBuffer buffer) {
-        try {
-            int bytesRead = buffer.limit();
-            Log.d(TAG, "onReceived: " + bytesRead);
-            if (bytesRead > 0) {
-                afterReceived(buffer);//先让子类处理，例如解密数据。
-                if (isTunnelEstablished() && buffer.hasRemaining()) {//将读到的数据，转发给兄弟。
-                    m_BrotherTunnel.beforeSend(buffer);//发送之前，先让子类处理，例如做加密等。
-                    if (!m_BrotherTunnel.write(buffer, true)) {
-                        key.cancel();//兄弟吃不消，就取消读取事件。
-                        Log.d(TAG, String.format("%s can not read more.\n", m_ServerEP));
-                    }
-                } else {
-                    Log.d(TAG, "not sent to brother tunnel" + isTunnelEstablished() + buffer.hasRemaining());
+    public void onReceived(SelectionKey key, ByteBuffer buffer, InetSocketAddress remoteAddr) throws Exception {
+        this.m_ServerEP = remoteAddr;
+
+        int bytesRead = buffer.limit();
+        Log.d(TAG, "onReceived: " + bytesRead);
+        if (bytesRead > 0) {
+            afterReceived(buffer);//先让子类处理，例如解密数据。
+            if (isTunnelEstablished() && buffer.hasRemaining()) {//将读到的数据，转发给兄弟。
+                m_BrotherTunnel.beforeSend(buffer);//发送之前，先让子类处理，例如做加密等。
+                if (!m_BrotherTunnel.write(buffer, true)) {
+                    key.cancel();//兄弟吃不消，就取消读取事件。
+                    Log.d(TAG, String.format("%s can not read more.\n", m_ServerEP));
                 }
+            } else {
+                Log.d(TAG, "not sent to brother tunnel" + isTunnelEstablished() + buffer.hasRemaining());
             }
-//            else if (bytesRead < 0) {
-//                this.dispose();//连接已关闭，释放资源。
-//            }
-        } catch (Exception e) {
-            Log.d(TAG, e.getMessage());
-            this.dispose();
+        } else if (bytesRead < 0) {
+            this.dispose();//连接已关闭，释放资源。
         }
     }
 

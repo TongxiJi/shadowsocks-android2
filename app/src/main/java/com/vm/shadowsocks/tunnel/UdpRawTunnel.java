@@ -48,10 +48,10 @@ public class UdpRawTunnel extends UdpBaseTunnel {
 
     }
 
-    @Override
-    public void onReceived(SelectionKey key, ByteBuffer buffer) {
-        Log.d(TAG, "onReceived: start");
-        super.onReceived(key, buffer);
-        Log.d(TAG, "onReceived: end");
-    }
+//    @Override
+//    public void onReceived(SelectionKey key, ByteBuffer buffer) {
+//        Log.d(TAG, "onReceived: start");
+//        super.onReceived(key, buffer);
+//        Log.d(TAG, "onReceived: end");
+//    }
 }
