@@ -319,7 +319,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                 }
                 onIPPacketReceived(m_IPHeader, size);
             }
-            Thread.sleep(20);
+            Thread.sleep(1);
         }
         in.close();
         connectivity.unregisterNetworkCallback(defaultNetworkCallback);
@@ -358,7 +358,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                             session = NatSessionManager.createSession(portKey, ipHeader.getDestinationIP(), tcpHeader.getDestinationPort());
                         }
 
-                        session.LastNanoTime = System.nanoTime();
+                        session.LastTime = System.currentTimeMillis();
                         session.PacketSent++;//注意顺序
 
                         int tcpDataSize = ipHeader.getDataLength() - tcpHeader.getHeaderLength();//tdp头一共20字节
@@ -380,8 +380,7 @@ public class LocalVpnService extends VpnService implements Runnable {
             case IPHeader.UDP:
                 UDPHeader udpHeader = m_UDPHeader;
                 udpHeader.m_Offset = ipHeader.getHeaderLength();
-                Log.d(TAG, String.format("" +
-                                "  %s:%d <-> %s:%d",
+                Log.d(TAG, String.format("onIPPacketReceived:udp  %s:%d <-> %s:%d",
                         CommonMethods.ipIntToString(ipHeader.getSourceIP()), udpHeader.getSourcePort(),
                         CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()
                 ));
@@ -436,7 +435,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                                 session.RemotePort = udpHeader.getDestinationPort();
                             }
 
-                            session.LastNanoTime = System.nanoTime();
+                            session.LastTime = System.currentTimeMillis();
                             session.PacketSent++;//注意顺序
 
                             int udpDataSize = ipHeader.getDataLength() - 8;//udp头一共8字节
@@ -453,12 +452,10 @@ public class LocalVpnService extends VpnService implements Runnable {
                         }
                     }
                 } else if (UDP_PROXY_TYPE == UDP_PROXY_NONE) {
-                    m_VPNOutputStream.write(ipHeader.m_Data, ipHeader.m_Offset, size);
                 }
                 break;
             default:
                 Log.d(TAG, String.format("other protocol PacketReceived:  %s", CommonMethods.ipIntToInet4Address(ipHeader.getDestinationIP())));
-                m_VPNOutputStream.write(ipHeader.m_Data, ipHeader.m_Offset, size);
                 break;
         }
     }

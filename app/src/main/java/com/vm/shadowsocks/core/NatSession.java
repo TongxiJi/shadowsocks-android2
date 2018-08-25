@@ -6,5 +6,5 @@ public class NatSession {
     public String RemoteHost;
     public int BytesSent;
     public int PacketSent;
-    public long LastNanoTime;
+    public long LastTime;
 }

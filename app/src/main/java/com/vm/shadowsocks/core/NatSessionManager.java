@@ -11,9 +11,9 @@ import java.util.Map;
 public class NatSessionManager {
     private static final String TAG = NatSessionManager.class.getSimpleName();
 
-    private static final int MAX_SESSION = 1000;
+    private static final int MAX_SESSION = 200;
     private static final float MAX_SESSION_PERCENT = 0.6f;
-    private static final long SESSION_TIMEOUT_NS = 60 * 1000000000L;
+    private static final long SESSION_TIMEOUT_MS = 2 * 60 * 1000L;//2分钟的删掉
 
     private static final LruCache<Integer, NatSession> sessions = new LruCache<>(MAX_SESSION);
 
@@ -27,11 +27,11 @@ public class NatSessionManager {
 
     static void clearExpiredSessions() {
         Log.d(TAG, "clearExpiredSessions: ");
-        long now = System.nanoTime();
+        long now = System.currentTimeMillis();
         Map<Integer, NatSession> snapshotMap = sessions.snapshot();
         for (Map.Entry<Integer, NatSession> entry : snapshotMap.entrySet()) {
             NatSession session = entry.getValue();
-            if (now - session.LastNanoTime > SESSION_TIMEOUT_NS) {
+            if (now - session.LastTime > SESSION_TIMEOUT_MS) {
                 sessions.remove(entry.getKey());
                 try {
                     NatMapper.closeChannelGracefully(entry.getKey());
@@ -49,7 +49,7 @@ public class NatSessionManager {
         }
 
         NatSession session = new NatSession();
-        session.LastNanoTime = System.nanoTime();
+        session.LastTime = System.currentTimeMillis();
         session.RemoteIP = remoteIP;
         session.RemotePort = remotePort;
 
