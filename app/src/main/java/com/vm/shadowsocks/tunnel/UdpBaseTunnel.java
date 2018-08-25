@@ -65,6 +65,10 @@ public abstract class UdpBaseTunnel {
         return m_DestAddress;
     }
 
+    public void setDestAddress(InetSocketAddress m_DestAddress) {
+        this.m_DestAddress = m_DestAddress;
+    }
+
     public void setBrotherTunnel(UdpBaseTunnel brotherTunnel) {
         m_BrotherTunnel = brotherTunnel;
     }
@@ -74,12 +78,18 @@ public abstract class UdpBaseTunnel {
         DatagramChannel channel = m_InnerChannel;
         if (LocalVpnService.Instance.protect(channel.socket())) {//保护socket不走vpn
             m_DestAddress = destAddress;
-            channel.socket().connect(m_ServerEP);
+            channel.configureBlocking(false);
+//            channel.socket().connect(m_ServerEP);
+            channel.socket().bind(null);
             onTunnelEstablished();
             Log.d(TAG, "connect: " + m_ServerEP.toString());
         } else {
             throw new Exception("VPN protect socket failed.");
         }
+    }
+
+    public InetSocketAddress getServerEP() {
+        return m_ServerEP;
     }
 
     protected void beginReceive() throws Exception {
@@ -95,6 +105,7 @@ public abstract class UdpBaseTunnel {
         while (buffer.hasRemaining()) {
 //            bytesSent = m_InnerChannel.write();
             bytesSent = m_InnerChannel.send(buffer, m_ServerEP);
+            Log.d(TAG, String.format("channel(%d)  send  %d<->%s<->%s", this.hashCode(), m_InnerChannel.socket().getLocalPort(), m_ServerEP.toString(), getDestAddress()));
             if (bytesSent == 0) {
                 break;//不能再发送了，终止循环
             }
@@ -123,6 +134,7 @@ public abstract class UdpBaseTunnel {
     }
 
     public void onReceived(SelectionKey key, ByteBuffer buffer, InetSocketAddress remoteAddr) throws Exception {
+        //remoteAddr对于local tunnel,只有port是真实的,会在nat表中进行转换
         this.m_ServerEP = remoteAddr;
 
         int bytesRead = buffer.limit();

@@ -40,7 +40,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LocalVpnService extends VpnService implements Runnable {
     private static final String TAG = LocalVpnService.class.getSimpleName();
 
-    private static final Boolean ONLY_DNS_PROXY = false;
+    private static final int UDP_PROXY_NONE = 0;
+    private static final int UDP_PROXY_FULL = 1;
+
+    private boolean ENABLE_FAKE_DNS = false;
+
+    private int UDP_PROXY_TYPE = 1;
 
     public static LocalVpnService Instance;
     public static String ProxyUrl;
@@ -233,11 +238,17 @@ public class LocalVpnService extends VpnService implements Runnable {
             m_TcpProxyServer.start();
             Log.d(TAG, "LocalTcpServer started.");
 
-            if (!ONLY_DNS_PROXY) {
-                udpProxyServer = new UdpProxyServer(0);
-                udpProxyServer.start();
-                Log.d(TAG, "UdpProxyServer started.");
-            } else {
+            switch (UDP_PROXY_TYPE) {
+                case UDP_PROXY_FULL:
+                    udpProxyServer = new UdpProxyServer(0);
+                    udpProxyServer.start();
+                    Log.d(TAG, "UdpProxyServer started.");
+                    break;
+                default:
+                    break;
+            }
+
+            if (ENABLE_FAKE_DNS) {
                 m_DnsProxyServer = new DnsProxyServer();
                 m_DnsProxyServer.start();
                 Log.d(TAG, "LocalDnsProxy started.");
@@ -297,14 +308,14 @@ public class LocalVpnService extends VpnService implements Runnable {
                     in.close();
                     throw new Exception("LocalServer stopped.");
                 }
-                if (ONLY_DNS_PROXY) {
-                    if (m_DnsProxyServer != null && m_DnsProxyServer.Stopped) {
-                        throw new Exception("DnsServer stopped.");
-                    }
-                } else {
-                    if (udpProxyServer != null && udpProxyServer.Stopped) {
-                        throw new Exception("UdpServer stopped.");
-                    }
+                switch (UDP_PROXY_TYPE) {
+                    case UDP_PROXY_FULL:
+                        if (udpProxyServer != null && udpProxyServer.Stopped) {
+                            throw new Exception("UdpServer stopped.");
+                        }
+                        break;
+                    default:
+                        break;
                 }
                 onIPPacketReceived(m_IPHeader, size);
             }
@@ -316,11 +327,14 @@ public class LocalVpnService extends VpnService implements Runnable {
     }
 
     void onIPPacketReceived(IPHeader ipHeader, int size) throws IOException {
-//        Log.d(TAG, "onIPPacketReceived,protocol:" + ipHeader.getProtocol());
         switch (ipHeader.getProtocol()) {
             case IPHeader.TCP:
                 TCPHeader tcpHeader = m_TCPHeader;
                 tcpHeader.m_Offset = ipHeader.getHeaderLength();
+                Log.d(TAG, String.format("onIPPacketReceived:tcp  %s:%d <-> %s:%d",
+                        CommonMethods.ipIntToString(ipHeader.getSourceIP()), tcpHeader.getSourcePort(),
+                        CommonMethods.ipIntToString(ipHeader.getDestinationIP()), tcpHeader.getDestinationPort()
+                ));
                 if (ipHeader.getSourceIP() == LOCAL_IP) {
                     if (tcpHeader.getSourcePort() == m_TcpProxyServer.Port) {// 收到本地TCP服务器数据
                         NatSession session = NatSessionManager.getSession(tcpHeader.getDestinationPort());
@@ -364,24 +378,35 @@ public class LocalVpnService extends VpnService implements Runnable {
                 }
                 break;
             case IPHeader.UDP:
-                if (ONLY_DNS_PROXY) {
-                    // 转发DNS数据包：
-                    UDPHeader udpHeader = m_UDPHeader;
-                    udpHeader.m_Offset = ipHeader.getHeaderLength();
-//                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
-                    if (ipHeader.getSourceIP() == LOCAL_IP && udpHeader.getDestinationPort() == 53) {
-                        m_DNSBuffer.clear();
-                        m_DNSBuffer.limit(ipHeader.getDataLength() - 8);
-                        DnsPacket dnsPacket = DnsPacket.FromBytes(m_DNSBuffer);
-                        if (dnsPacket != null && dnsPacket.Header.QuestionCount > 0) {
-                            m_DnsProxyServer.onDnsRequestReceived(ipHeader, udpHeader, dnsPacket);
-                        }
-                    }
-                } else {
-                    UDPHeader udpHeader = m_UDPHeader;
-                    udpHeader.m_Offset = ipHeader.getHeaderLength();
-                    Log.d(TAG, String.format("onIPPacketReceived:udp %s:%d", CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()));
+                UDPHeader udpHeader = m_UDPHeader;
+                udpHeader.m_Offset = ipHeader.getHeaderLength();
+                Log.d(TAG, String.format("" +
+                                "  %s:%d <-> %s:%d",
+                        CommonMethods.ipIntToString(ipHeader.getSourceIP()), udpHeader.getSourcePort(),
+                        CommonMethods.ipIntToString(ipHeader.getDestinationIP()), udpHeader.getDestinationPort()
+                ));
+//                if (UDP_PROXY_TYPE == UDP_PROXY_FAKE_DNS) {
+//                    // 转发DNS数据包：
+//                    if (ipHeader.getSourceIP() == LOCAL_IP && udpHeader.getDestinationPort() == 53) {
+//                        m_DNSBuffer.clear();
+//                        m_DNSBuffer.limit(ipHeader.getDataLength() - 8);
+//                        DnsPacket dnsPacket = DnsPacket.FromBytes(m_DNSBuffer);
+//                        if (dnsPacket != null && dnsPacket.Header.QuestionCount > 0) {
+//                            m_DnsProxyServer.onDnsRequestReceived(ipHeader, udpHeader, dnsPacket);
+//                        }
+//                    }
+//                } else
+                if (UDP_PROXY_TYPE == UDP_PROXY_FULL) {
                     if (ipHeader.getSourceIP() == LOCAL_IP) {
+                        if (ENABLE_FAKE_DNS && udpHeader.getDestinationPort() == 53) {
+                            m_DNSBuffer.clear();
+                            m_DNSBuffer.limit(ipHeader.getDataLength() - 8);
+                            DnsPacket dnsPacket = DnsPacket.FromBytes(m_DNSBuffer);
+                            if (dnsPacket != null && dnsPacket.Header.QuestionCount > 0) {
+                                m_DnsProxyServer.onDnsRequestReceived(ipHeader, udpHeader, dnsPacket);
+                            }
+                            return;
+                        }
                         if (udpHeader.getSourcePort() == udpProxyServer.Port) {// 收到本地UDP服务器数据
                             NatSession session = NatSessionManager.getSession(udpHeader.getDestinationPort());
                             if (session != null) {
@@ -399,8 +424,16 @@ public class LocalVpnService extends VpnService implements Runnable {
                             // 添加端口映射
                             int portKey = udpHeader.getSourcePort();
                             NatSession session = NatSessionManager.getSession(portKey);
-                            if (session == null || session.RemoteIP != ipHeader.getDestinationIP() || session.RemotePort != udpHeader.getDestinationPort()) {
+//                            if (session == null || session.RemoteIP != ipHeader.getDestinationIP() || session.RemotePort != udpHeader.getDestinationPort()) {
+//                                session = NatSessionManager.createSession(portKey, ipHeader.getDestinationIP(), udpHeader.getDestinationPort());
+//                            }
+
+                            if (session == null) {
                                 session = NatSessionManager.createSession(portKey, ipHeader.getDestinationIP(), udpHeader.getDestinationPort());
+                            } else {
+                                //当应用 单个udp_client向多台服务器发送数据时,需要改变目标地址
+                                session.RemoteIP = ipHeader.getDestinationIP();
+                                session.RemotePort = udpHeader.getDestinationPort();
                             }
 
                             session.LastNanoTime = System.nanoTime();
@@ -419,7 +452,13 @@ public class LocalVpnService extends VpnService implements Runnable {
                             m_SentBytes += size;
                         }
                     }
+                } else if (UDP_PROXY_TYPE == UDP_PROXY_NONE) {
+                    m_VPNOutputStream.write(ipHeader.m_Data, ipHeader.m_Offset, size);
                 }
+                break;
+            default:
+                Log.d(TAG, String.format("other protocol PacketReceived:  %s", CommonMethods.ipIntToInet4Address(ipHeader.getDestinationIP())));
+                m_VPNOutputStream.write(ipHeader.m_Data, ipHeader.m_Offset, size);
                 break;
         }
     }

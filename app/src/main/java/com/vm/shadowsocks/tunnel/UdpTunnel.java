@@ -55,7 +55,7 @@ public class UdpTunnel extends UdpBaseTunnel {
         addrRequest.encodeAsByteBuf(addrBuff);//address frame
         addrBuff.flip();
 //        Log.d(TAG, "addrBuff beforeSend: "+ Arrays.toString(addrBuff.array()));
-
+        Log.d(TAG, "send data to: " + addrRequest.toString());
 
         ByteBuffer finalBuff = ByteBuffer.allocate(UDP_BUFFER_SIZE)
                 .put(addrBuff)

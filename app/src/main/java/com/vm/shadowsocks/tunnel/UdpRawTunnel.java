@@ -28,7 +28,7 @@ public class UdpRawTunnel extends UdpBaseTunnel {
     @Override
     protected void beforeSend(ByteBuffer buffer) throws Exception {
         // TODO Auto-generated method stub
-        Log.d(TAG, "beforeSend: ");
+//        Log.d(TAG, "beforeSend: ");
     }
 
     @Override

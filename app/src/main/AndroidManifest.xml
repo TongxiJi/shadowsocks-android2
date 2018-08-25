@@ -11,7 +11,6 @@
         android:allowBackup="true"
         android:icon="@drawable/shadowsocks"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme"
         android:persistent="true">
 
         <activity

@@ -82,7 +82,7 @@ public class UdpProxyServer implements Runnable {
                                 ByteBuffer recvBuf = ByteBuffer.allocate(UdpBaseTunnel.UDP_BUFFER_SIZE);
                                 InetSocketAddress remoteAddr = (InetSocketAddress) channel.receive(recvBuf);
                                 recvBuf.flip();
-                                if (!remoteAddr.toString().contains("10.30.52.151")) {
+                                if (!remoteAddr.toString().contains("173.248.242.109")) {
                                     onCheckRemoteTunnel(key, remoteAddr);
                                 } else {
 //                                    Log.d(TAG, "local:" + channel.socket().getLocalSocketAddress().toString());
@@ -95,12 +95,12 @@ public class UdpProxyServer implements Runnable {
 //                                if (key.attachment() == null) {
 //                                    Log.d(TAG, " run: attachment is null:" + key.attachment());
 //                                }
-                                ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf,remoteAddr);
+                                ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf, remoteAddr);
                             } else if (key.isWritable()) {
                                 ((UdpBaseTunnel) key.attachment()).onWritable(key);
                             }
                         } catch (Exception e) {
-                            Log.d(TAG, e.toString());
+                            Log.d(TAG, "select err:" + e.toString());
                         }
                     }
                 }
@@ -115,14 +115,15 @@ public class UdpProxyServer implements Runnable {
     }
 
     private void onCheckRemoteTunnel(SelectionKey key, InetSocketAddress remoteAddr) throws Exception {
-        UdpBaseTunnel localTunnel = null;
+        UdpBaseTunnel localTunnel;
+        UdpBaseTunnel remoteTunnel;
         try {
             DatagramChannel localChannel = (DatagramChannel) key.channel();
             InetSocketAddress destAddress = TunnelFactory.getDestAddress(remoteAddr.getPort());
             if (destAddress != null) {
-                if (!NatMapper.containUdpChannel(remoteAddr.getPort())) {
+                localTunnel = NatMapper.getUdpChannel(remoteAddr.getPort());
+                if (localTunnel == null) {
                     localTunnel = TunnelFactory.wrap(localChannel, m_Selector);
-                    UdpBaseTunnel remoteTunnel;
                     Config config = ProxyConfig.Instance.getDefaultTunnelConfig(destAddress);
                     if (config instanceof ShadowsocksConfig) {
                         remoteTunnel = new UdpTunnel((ShadowsocksConfig) config, m_Selector);
@@ -133,12 +134,17 @@ public class UdpProxyServer implements Runnable {
                     localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
                     remoteTunnel.connect(destAddress);
                     NatMapper.putUdpChannel(remoteAddr.getPort(), localTunnel);
+                    Log.d(TAG, String.format("create udp remote tunnel(%d) %d<->%s<->%s", remoteTunnel.hashCode(), remoteAddr.getPort(), remoteTunnel.getServerEP().toString(), destAddress.toString()));
+                } else {
+                    remoteTunnel = localTunnel.getBrotherTunnel();
+                    remoteTunnel.setDestAddress(destAddress);
+                    Log.d(TAG, "onCheckRemoteTunnel,server endpoint: " + remoteTunnel.getServerEP() + " destAddress:" + destAddress);
+                    Log.d(TAG, String.format("change udp remote tunnel(%d) %d<->%s<->%s", remoteTunnel.hashCode(), remoteAddr.getPort(), remoteTunnel.getServerEP().toString(), destAddress.toString()));
                 }
             } else {
                 throw new Exception(String.format("Error: socket(%s:%d) target address is null.", localChannel.socket().getLocalAddress(), localChannel.socket().getPort()));
             }
         } catch (Exception e) {
-            Log.d(TAG, "remote addr:" + remoteAddr.toString());
             throw new Exception("Error: remote socket create failed: " + e.toString());
         }
     }
