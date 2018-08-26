@@ -13,7 +13,7 @@ public class NatSessionManager {
 
     private static final int MAX_SESSION = 200;
     private static final float MAX_SESSION_PERCENT = 0.6f;
-    private static final long SESSION_TIMEOUT_MS = 2 * 60 * 1000L;//2分钟的删掉
+    private static final long SESSION_TIMEOUT_MS = 60 * 1000L;//2分钟的删掉
 
     private static final LruCache<Integer, NatSession> sessions = new LruCache<>(MAX_SESSION);
 

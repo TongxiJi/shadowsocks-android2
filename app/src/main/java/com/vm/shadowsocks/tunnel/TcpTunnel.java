@@ -1,5 +1,7 @@
 package com.vm.shadowsocks.tunnel;
 
+import android.util.Log;
+
 import com.vm.shadowsocks.socks.AddrRequest;
 import com.vm.shadowsocks.socks.SocksAddressType;
 import com.vm.shadowsocks.tunnel.shadowsocks.CryptFactory;
@@ -70,6 +72,7 @@ public class TcpTunnel extends TcpBaseTunnel {
         buffer.clear();
         buffer.put(newbytes);
         buffer.flip();
+        Log.d(TAG, this.hashCode() + " send data to: " + getDestAddress().toString()+" "+newbytes.length);
     }
 
     @Override
@@ -80,6 +83,8 @@ public class TcpTunnel extends TcpBaseTunnel {
         buffer.clear();
         buffer.put(bytes);
         buffer.flip();
+
+        Log.d(TAG, this.hashCode() + " receive data from: " + getDestAddress().toString()+" "+bytes.length);
     }
 
     @Override

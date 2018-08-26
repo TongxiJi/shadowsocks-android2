@@ -137,6 +137,7 @@ public class UdpProxyServer implements Runnable {
                     Log.d(TAG, String.format("create udp remote tunnel(%d) %d<->%s<->%s", remoteTunnel.hashCode(), remoteAddr.getPort(), remoteTunnel.getServerEP().toString(), destAddress.toString()));
                 } else {
                     remoteTunnel = localTunnel.getBrotherTunnel();
+//                    Log.d(TAG, String.format("old desc:%s,new desc:%s ",remoteTunnel.getDestAddress().toString(),destAddress.toString()));
                     remoteTunnel.setDestAddress(destAddress);
                     Log.d(TAG, "onCheckRemoteTunnel,server endpoint: " + remoteTunnel.getServerEP() + " destAddress:" + destAddress);
                     Log.d(TAG, String.format("change udp remote tunnel(%d) %d<->%s<->%s", remoteTunnel.hashCode(), remoteAddr.getPort(), remoteTunnel.getServerEP().toString(), destAddress.toString()));

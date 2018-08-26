@@ -27,6 +27,7 @@ import com.vm.shadowsocks.tcpip.TCPHeader;
 import com.vm.shadowsocks.tcpip.UDPHeader;
 import com.vm.shadowsocks.ui.MainActivity;
 
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -84,7 +85,7 @@ public class LocalVpnService extends VpnService implements Runnable {
     public LocalVpnService() {
         ID++;
         m_Handler = new Handler();
-        m_Packet = new byte[20000];
+        m_Packet = new byte[1500];
         m_IPHeader = new IPHeader(m_Packet, 0);
         m_TCPHeader = new TCPHeader(m_Packet, 20);
         m_UDPHeader = new UDPHeader(m_Packet, 20);
@@ -361,10 +362,10 @@ public class LocalVpnService extends VpnService implements Runnable {
                         session.LastTime = System.currentTimeMillis();
                         session.PacketSent++;//注意顺序
 
-                        int tcpDataSize = ipHeader.getDataLength() - tcpHeader.getHeaderLength();//tdp头一共20字节
-                        if (session.PacketSent == 2 && tcpDataSize == 0) {
-                            return;//丢弃tcp握手的第二个ACK报文。因为客户端发数据的时候也会带上ACK，这样可以在服务器Accept之前分析出HOST信息。
-                        }
+                        int tcpDataSize = ipHeader.getDataLength() - 20;//tdp头一共20字节
+//                        if (session.PacketSent == 2 && tcpDataSize == 0) {
+//                            return;//丢弃tcp握手的第二个ACK报文。因为客户端发数据的时候也会带上ACK，这样可以在服务器Accept之前分析出HOST信息。
+//                        }
                         // 转发给本地TCP服务器
                         ipHeader.setSourceIP(ipHeader.getDestinationIP());
                         ipHeader.setDestinationIP(LOCAL_IP);

@@ -114,6 +114,7 @@ public class TcpProxyServer implements Runnable {
                 remoteTunnel.setBrotherTunnel(localTunnel);//关联兄弟
                 localTunnel.setBrotherTunnel(remoteTunnel);//关联兄弟
                 remoteTunnel.connect(destAddress);//开始连接
+                Log.d(TAG, String.format("create tcp remote tunnel(%d) %d<->%s<->%s", remoteTunnel.hashCode(), localChannel.socket().getPort(), config.ServerAddress, destAddress.toString()));
             } else {
                 Log.e(TAG, String.format("socket(%s:%d) target address is null.", localChannel.socket().getInetAddress().toString(), localChannel.socket().getPort()));
                 localTunnel.dispose();
