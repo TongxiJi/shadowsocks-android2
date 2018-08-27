@@ -92,14 +92,15 @@ public class UdpProxyServer implements Runnable {
                                     UdpBaseTunnel remoteTunnel = NatMapper.getRemoteUdpChannel(keyPort);
                                     key.attach(remoteTunnel);
                                 }
-//                                if (key.attachment() == null) {
-//                                    Log.d(TAG, " run: attachment is null:" + key.attachment());
-//                                }
+                                if (key.attachment() == null) {
+                                    Log.d(TAG, " run: attachment is null from " + remoteAddr.toString());
+                                }
                                 ((UdpBaseTunnel) key.attachment()).onReceived(key, recvBuf, remoteAddr);
                             } else if (key.isWritable()) {
                                 ((UdpBaseTunnel) key.attachment()).onWritable(key);
                             }
                         } catch (Exception e) {
+                            e.printStackTrace();
                             Log.d(TAG, "select err:" + e.toString());
                         }
                     }

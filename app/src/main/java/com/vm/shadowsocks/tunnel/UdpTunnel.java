@@ -35,11 +35,6 @@ public class UdpTunnel extends UdpBaseTunnel {
     }
 
     @Override
-    protected boolean isTunnelEstablished() {
-        return m_TunnelEstablished;
-    }
-
-    @Override
     protected void beforeSend(ByteBuffer rawBuff) throws Exception {
 //        Log.d(TAG, "beforeSend: ");
         ByteBuffer addrBuff = ByteBuffer.allocate(256);

@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -20,8 +21,9 @@ public class UdpRawTunnel extends UdpBaseTunnel {
         super(serverAddress, selector);
     }
 
-    public UdpRawTunnel(DatagramChannel innerChannel, Selector selector) {
+    public UdpRawTunnel(DatagramChannel innerChannel, Selector selector) throws ClosedChannelException {
         super(innerChannel, selector);
+        innerChannel.register(selector, SelectionKey.OP_READ,this);//注册读事件
         // TODO Auto-generated constructor stub
     }
 
@@ -35,11 +37,6 @@ public class UdpRawTunnel extends UdpBaseTunnel {
     protected void afterReceived(ByteBuffer buffer) throws Exception {
         // TODO Auto-generated method stub
 //        Log.d(TAG, "afterReceived: ");
-    }
-
-    @Override
-    protected boolean isTunnelEstablished() {
-        return true;
     }
 
     @Override

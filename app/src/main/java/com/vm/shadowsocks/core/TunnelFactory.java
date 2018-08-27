@@ -14,6 +14,7 @@ import com.vm.shadowsocks.tunnel.shadowsocks.ShadowsocksConfig;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -27,7 +28,7 @@ public class TunnelFactory {
         return new TcpRawTunnel(channel, selector);
     }
 
-    public static UdpRawTunnel wrap(DatagramChannel channel, Selector selector) {
+    public static UdpRawTunnel wrap(DatagramChannel channel, Selector selector) throws ClosedChannelException {
         return new UdpRawTunnel(channel, selector);
     }
 

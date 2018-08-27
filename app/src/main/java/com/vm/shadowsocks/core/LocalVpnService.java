@@ -356,7 +356,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                         int portKey = tcpHeader.getSourcePort();
                         NatSession session = NatSessionManager.getSession(portKey);
                         if (session == null || session.RemoteIP != ipHeader.getDestinationIP() || session.RemotePort != tcpHeader.getDestinationPort()) {
-                            session = NatSessionManager.createSession(portKey, ipHeader.getDestinationIP(), tcpHeader.getDestinationPort());
+                            session = NatSessionManager.createSession(portKey, ipHeader.getDestinationIP(), tcpHeader.getDestinationPort(),ipHeader.getSourceIP());
                         }
 
                         session.LastTime = System.currentTimeMillis();
@@ -397,7 +397,7 @@ public class LocalVpnService extends VpnService implements Runnable {
 //                    }
 //                } else
                 if (UDP_PROXY_TYPE == UDP_PROXY_FULL) {
-                    if (ipHeader.getSourceIP() == LOCAL_IP) {
+                    if (ipHeader.getSourceIP() == LOCAL_IP) {//TODO need add real network ip || ipHeader.getSourceIP() == CommonMethods.ipStringToInt("192.168.0.6") ,
                         if (ENABLE_FAKE_DNS && udpHeader.getDestinationPort() == 53) {
                             m_DNSBuffer.clear();
                             m_DNSBuffer.limit(ipHeader.getDataLength() - 8);
@@ -412,7 +412,7 @@ public class LocalVpnService extends VpnService implements Runnable {
                             if (session != null) {
                                 ipHeader.setSourceIP(ipHeader.getDestinationIP());
                                 udpHeader.setSourcePort(session.RemotePort);
-                                ipHeader.setDestinationIP(LOCAL_IP);
+                                ipHeader.setDestinationIP(session.LocalIP);
 
                                 CommonMethods.ComputeUDPChecksum(ipHeader, udpHeader);
                                 m_VPNOutputStream.write(ipHeader.m_Data, ipHeader.m_Offset, size);
@@ -429,7 +429,7 @@ public class LocalVpnService extends VpnService implements Runnable {
 //                            }
 
                             if (session == null) {
-                                session = NatSessionManager.createSession(portKey, ipHeader.getDestinationIP(), udpHeader.getDestinationPort());
+                                session = NatSessionManager.createSession(portKey, ipHeader.getDestinationIP(), udpHeader.getDestinationPort(), ipHeader.getSourceIP());
                             } else {
                                 //当应用 单个udp_client向多台服务器发送数据时,需要改变目标地址
                                 session.RemoteIP = ipHeader.getDestinationIP();

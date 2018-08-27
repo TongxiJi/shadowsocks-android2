@@ -2,6 +2,7 @@ package com.vm.shadowsocks.core;
 
 public class NatSession {
     public int RemoteIP;
+    public int LocalIP;
     public int RemotePort;
     public String RemoteHost;
     public int BytesSent;
